@@ -131,17 +131,31 @@
 
         <!-- Sağ: İlan Sahibi -->
         <div class="col-lg-4">
-            <div class="card shadow-sm rounded-4 text-center p-3 owner-card">
+            <div class="card shadow-sm rounded-4 text-center p-3 owner-card position-relative" style="cursor:pointer;">
+                @if (owner != null)
+                {
+                    <a asp-controller="Freelancers"
+                       asp-action="Details"
+                       asp-route-id="@owner.UserId"
+                       class="stretched-link"
+                       aria-label="@(owner.Fullname) profiline git"></a>
+                }
+
                 <img src="@(string.IsNullOrEmpty(owner?.ProfileImagePath) ? "/uploads/default.png" : owner.ProfileImagePath)"
                      alt="Profile"
                      class="rounded-circle mb-3 border border-3 border-primary owner-img"
                      style="width:120px; height:120px; object-fit:cover;" />
+
                 <h5 class="fw-bold">@owner?.Fullname</h5>
                 <p class="text-muted mb-2">@owner?.UserJob</p>
 
                 @if (!string.IsNullOrEmpty(owner?.UserEmail))
                 {
-                    <a href="mailto:@owner.UserEmail" class="btn btn-outline-primary btn-sm w-100">İletişime Geç</a>
+                    <a href="mailto:@owner.UserEmail"
+                       class="btn btn-outline-primary btn-sm w-100"
+                       style="position:relative; z-index:2;">
+                        İletişime Geç
+                    </a>
                 }
             </div>
         </div>

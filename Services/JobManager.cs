@@ -23,6 +23,8 @@ namespace Services
         public void CreateJob(Jobs job) =>
             _jobRepository.CreateJob(job);
 
+        public void UpdateJob(Jobs job) => _jobRepository.UpdateJob(job);
+
         public void PurchaseJob(Jobs job, int buyerUserId)
         {
             if (job == null) throw new ArgumentNullException(nameof(job));

@@ -122,5 +122,111 @@ namespace Controllers
             return _userService.GetUserByUsername(userName, false);
         }
 
+        // === EDIT ===
+        [Authorize(Policy = "FreelancerOnly")]
+        [HttpGet]
+        public IActionResult Edit(int id)
+        {
+            var job = _jobService.GetJobById(id);
+            if (job == null) return NotFound();
+
+            var currentUser = GetCurrentUser();
+            if (currentUser == null) return RedirectToAction("Index", "Auth");
+
+            // Sadece ilan sahibi düzenleyebilir
+            if (job.UserId != currentUser.UserId)
+            {
+                TempData["Error"] = "Bu ilanı düzenleme yetkiniz yok.";
+                return RedirectToAction("Details", new { id });
+            }
+
+            // Satılmış işi düzenlemeyi engelle (isterseniz kaldırabilirsiniz)
+            if (job.IsPurchased)
+            {
+                TempData["Error"] = "Satılmış bir ilanı düzenleyemezsiniz.";
+                return RedirectToAction("Details", new { id });
+            }
+
+            // Formu doldurmak için VM
+            ViewBag.Categories = _categoryService.GetAllCategories();
+
+            var vm = new Entities.ViewModels.JobCreateViewModel
+            {
+                JobName = job.JobName,
+                JobDescription = job.JobDescription,
+                JobPrice = job.JobPrice,
+                CategoryId = job.CategoryId
+                // JobImgFile yok; mevcut görseli sayfada sadece önizleme olarak göstereceğiz
+            };
+
+            ViewBag.CurrentImage = string.IsNullOrEmpty(job.JobImg) ? "/uploads/default-job.png" : job.JobImg;
+            ViewBag.JobId = job.Id;
+
+            return View(vm);
+        }
+
+        [Authorize(Policy = "FreelancerOnly")]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult Edit(int id, Entities.ViewModels.JobCreateViewModel vm)
+        {
+            var job = _jobService.GetJobById(id);
+            if (job == null) return NotFound();
+
+            var currentUser = GetCurrentUser();
+            if (currentUser == null) return RedirectToAction("Index", "Auth");
+
+            // Sahiplik kontrolü
+            if (job.UserId != currentUser.UserId)
+            {
+                TempData["Error"] = "Bu ilanı düzenleme yetkiniz yok.";
+                return RedirectToAction("Details", new { id });
+            }
+
+            // Satılmış işi düzenlemeyi engelle (isterseniz kaldırabilirsiniz)
+            if (job.IsPurchased)
+            {
+                TempData["Error"] = "Satılmış bir ilanı düzenleyemezsiniz.";
+                return RedirectToAction("Details", new { id });
+            }
+
+            // Server-side validation
+            if (vm.CategoryId == null) ModelState.AddModelError(nameof(vm.CategoryId), "Kategori seçiniz.");
+            if (string.IsNullOrWhiteSpace(vm.JobName)) ModelState.AddModelError(nameof(vm.JobName), "İlan adı zorunludur.");
+            if (string.IsNullOrWhiteSpace(vm.JobDescription)) ModelState.AddModelError(nameof(vm.JobDescription), "Açıklama zorunludur.");
+            if (vm.JobPrice <= 0) ModelState.AddModelError(nameof(vm.JobPrice), "Fiyat 0’dan büyük olmalıdır.");
+
+            if (!ModelState.IsValid)
+            {
+                ViewBag.Categories = _categoryService.GetAllCategories();
+                ViewBag.CurrentImage = string.IsNullOrEmpty(job.JobImg) ? "/uploads/default-job.png" : job.JobImg;
+                ViewBag.JobId = job.Id;
+                return View(vm);
+            }
+
+            // Görsel güncellenecekse kaydet
+            if (vm.JobImgFile is { Length: > 0 })
+            {
+                var uploadsFolder = Path.Combine(_webHost.WebRootPath, "uploads");
+                if (!Directory.Exists(uploadsFolder)) Directory.CreateDirectory(uploadsFolder);
+                var uniqueFileName = Guid.NewGuid() + Path.GetExtension(vm.JobImgFile.FileName);
+                var filePath = Path.Combine(uploadsFolder, uniqueFileName);
+                using var fs = System.IO.File.Create(filePath);
+                vm.JobImgFile.CopyTo(fs);
+                job.JobImg = "/uploads/" + uniqueFileName;
+            }
+
+            // Alanları güncelle
+            job.JobName = vm.JobName.Trim();
+            job.JobDescription = vm.JobDescription.Trim();
+            job.JobPrice = vm.JobPrice;
+            job.CategoryId = vm.CategoryId!.Value;
+
+            _jobService.UpdateJob(job);
+
+            TempData["Success"] = "İlan başarıyla güncellendi.";
+            return RedirectToAction("Details", new { id = job.Id });
+        }
+
     }
 }

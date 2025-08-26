@@ -10,6 +10,8 @@ namespace Services.Contracts
         void CreateJob(Jobs job);
         void PurchaseJob(Jobs job, int buyerUserId);
 
+        void UpdateJob(Jobs job);
+
         // YENİ:
         List<Jobs> GetPurchasedJobsByUser(int userId);
 
