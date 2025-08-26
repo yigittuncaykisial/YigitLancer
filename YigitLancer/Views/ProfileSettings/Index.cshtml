@@ -1,0 +1,105 @@
+﻿@model Entities.Models.User
+@{
+    ViewData["Title"] = "Profile Settings";
+}
+
+<div class="container mt-4">
+    <h2>Profile Settings</h2>
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger">@TempData["Error"]</div>
+    }
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success">@TempData["Success"]</div>
+    }
+
+    <div class="row g-4">
+        <!-- Sol: Profil bilgileri -->
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="mb-3">Profil Bilgileri</h5>
+                    <form asp-action="Index" asp-controller="ProfileSettings" method="post" enctype="multipart/form-data">
+                        @Html.AntiForgeryToken()
+
+                        <div class="form-group mb-3">
+                            <label asp-for="Name"></label>
+                            <input asp-for="Name" class="form-control" />
+                        </div>
+
+                        <div class="form-group mb-3">
+                            <label asp-for="Surname"></label>
+                            <input asp-for="Surname" class="form-control" />
+                        </div>
+
+                        <div class="form-group mb-3">
+                            <label asp-for="UserName">Username</label>
+                            <input asp-for="UserName" class="form-control" />
+                        </div>
+
+                        <div class="form-group mb-3">
+                            <label asp-for="UserEmail">Email</label>
+                            <input asp-for="UserEmail" type="email" class="form-control" />
+                        </div>
+
+                        <div class="form-group mb-3">
+                            <label asp-for="UserDescription">Description</label>
+                            <textarea asp-for="UserDescription" class="form-control"></textarea>
+                        </div>
+
+                        <div class="form-group mb-3">
+                            <label asp-for="Age">Age</label>
+                            <input asp-for="Age" type="number" class="form-control" />
+                        </div>
+
+                        <div class="form-group mb-3">
+                            <label>Profile Image</label>
+                            <input type="file" name="profileImage" class="form-control" />
+                            @if (!string.IsNullOrEmpty(Model.ProfileImagePath))
+                            {
+                                <div class="mt-2">
+                                    <img src="@Model.ProfileImagePath" alt="Profile" width="120" height="120" class="rounded-circle border" />
+                                </div>
+                            }
+                        </div>
+
+                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sağ: Şifre değiştir -->
+        <div class="col-lg-6">
+            <div class="card border-warning">
+                <div class="card-body">
+                    <h5 class="mb-3">Şifre Değiştir</h5>
+
+                    <form asp-action="ChangePassword" asp-controller="ProfileSettings" method="post" novalidate>
+                        @Html.AntiForgeryToken()
+
+                        <div class="mb-3">
+                            <label class="form-label">Mevcut Şifre</label>
+                            <input type="password" name="CurrentPassword" class="form-control" required />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Yeni Şifre</label>
+                            <input type="password" name="NewPassword" class="form-control" minlength="8" required />
+                            <div class="form-text">En az 8 karakter olmalı.</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Yeni Şifre (Tekrar)</label>
+                            <input type="password" name="ConfirmPassword" class="form-control" minlength="8" required />
+                        </div>
+
+                        <button type="submit" class="btn btn-warning">Şifreyi Güncelle</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

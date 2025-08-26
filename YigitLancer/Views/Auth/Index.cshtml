@@ -1,0 +1,157 @@
+﻿@model Entities.ViewModels.LoginViewModel
+@{
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Lancer • Login</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <style>
+        /* senin var olan stillerin */
+        body {
+            min-height: 100vh;
+            background: radial-gradient(1200px 600px at -10% -10%, rgba(0,123,255,.12), transparent 60%), radial-gradient(900px 600px at 110% 110%, rgba(40,167,69,.09), transparent 60%), #0f1114;
+            color: #e9ecef;
+        }
+
+        .auth-card {
+            background: rgba(255,255,255,.04);
+            backdrop-filter: saturate(160%) blur(10px);
+            border: 1px solid rgba(255,255,255,.08);
+            border-radius: 22px;
+        }
+
+        .side-pane {
+            background: linear-gradient(180deg, rgba(33,37,41,.65), rgba(33,37,41,.65)), radial-gradient(1200px 600px at 30% -20%, rgba(0,123,255,.35), transparent 60%), radial-gradient(900px 600px at 120% 120%, rgba(40,167,69,.28), transparent 60%);
+            color: #f8f9fa;
+        }
+
+        .brand-badge {
+            letter-spacing: .04em
+        }
+
+        .form-control {
+            background: rgba(255,255,255,.02);
+            color: #fff;
+            border-color: rgba(255,255,255,.18)
+        }
+
+            .form-control::placeholder {
+                color: #adb5bd
+            }
+
+            .form-control:focus {
+                box-shadow: none;
+                border-color: #86b7fe
+            }
+
+        .btn-primary {
+            background: linear-gradient(135deg,#0d6efd,#0aa2c0);
+            border: 0
+        }
+
+            .btn-primary:hover {
+                filter: brightness(1.05)
+            }
+
+        .field-validation-error {
+            color: #ffd166 !important;
+            font-size: .85rem;
+        }
+    </style>
+</head>
+<body class="d-flex align-items-center py-4">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-12 col-lg-9">
+                <div class="auth-card shadow-lg overflow-hidden">
+                    <div class="row g-0">
+                        <!-- Sol panel (aynı kalsın) -->
+                        <div class="col-lg-6 p-4 p-md-5 side-pane d-none d-lg-flex flex-column justify-content-between">
+                            <div>
+                                <div class="d-inline-block px-3 py-1 rounded-pill bg-light text-dark fw-semibold brand-badge">Lancer</div>
+                                <h2 class="mt-4 fw-bold">Tekrar hoş geldin</h2>
+                                <p class="text-light-50">Projelerine kaldığın yerden devam et.</p>
+                                <ul class="mt-3 small text-light-50">
+                                    <li>Satın aldıkların elinin altında</li>
+                                    <li>Freelancer’larla hızlı iletişim</li>
+                                    <li>Güvenli giriş</li>
+                                </ul>
+                            </div>
+                            <div class="small text-light-50">© @DateTime.Now.Year Lancer</div>
+                        </div>
+
+                        <!-- Sağ: Form -->
+                        <div class="col-lg-6 p-4 p-md-5">
+                            <h3 class="fw-bold mb-1">Login</h3>
+                            <p class="text-muted mb-3">Hesabına giriş yap.</p>
+
+                            <div asp-validation-summary="ModelOnly" class="text-warning small mb-3"></div>
+
+                            @if (TempData["Success"] != null)
+                            {
+                                <div class="alert alert-success" role="alert">@TempData["Success"]</div>
+                            }
+
+                            <form method="post" novalidate>
+                                @Html.AntiForgeryToken()
+
+                                <div class="mb-3">
+                                    <label asp-for="Username" class="form-label">Username</label>
+                                    <input asp-for="Username" class="form-control" placeholder="kullanıcı adın" />
+                                    <span asp-validation-for="Username" class="field-validation-error"></span>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label asp-for="Password" class="form-label">Password</label>
+                                    <div class="input-group">
+                                        <input asp-for="Password" class="form-control" id="password" placeholder="şifren" />
+                                        <button class="btn btn-outline-light" type="button" id="togglePwd">Göster</button>
+                                    </div>
+                                    <span asp-validation-for="Password" class="field-validation-error"></span>
+                                </div>
+
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <div class="form-check">
+                                        <input asp-for="RememberMe" class="form-check-input" />
+                                        <label asp-for="RememberMe" class="form-check-label">Beni hatırla</label>
+                                    </div>
+                                    <a href="@Url.Action("Index", "ForgetPassword")" class="text-muted text-decoration-underline">Şifremi unuttum</a>
+                                </div>
+
+                                <button type="submit" class="btn btn-primary w-100 py-2">Login</button>
+                            </form>
+
+                            <div class="mt-3 text-center text-muted">
+                                Hesabın yok mu?
+                                <a href="@Url.Action("Index", "Register")" class="text-decoration-underline">Hemen kaydol</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/jquery-validation/dist/jquery.validate.min.js"></script>
+    <script src="~/lib/jquery-validation-unobtrusive/dist/jquery.validate.unobtrusive.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        (function(){
+            const btn=document.getElementById('togglePwd');
+            const input=document.getElementById('password');
+            if(btn&&input){
+                btn.addEventListener('click',()=>{
+                    const t=input.getAttribute('type')==='password'?'text':'password';
+                    input.setAttribute('type',t);
+                    btn.textContent=(t==='password')?'Göster':'Gizle';
+                });
+            }
+        })();
+    </script>
+</body>
+</html>

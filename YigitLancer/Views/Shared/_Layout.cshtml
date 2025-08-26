@@ -1,0 +1,46 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>My Website</title>
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <!-- Site CSS -->
+    <link rel="stylesheet" href="~/css/site.css" />
+    <!-- Font Awesome CSS -->
+    <link rel="stylesheet" href="~/lib/font-awesome/css/all.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+
+</head>
+<body class="theme-dark">
+    <div class="bg-canvas"></div> <!-- sabit arka plan katmanı -->
+    <header>
+        <partial name="_Navbar" />
+        @RenderSection("Header", false)
+    </header>
+
+    <div class="container content-shell">
+        <main role="main" class="pb-3">
+            @RenderBody()
+        </main>
+    </div>
+
+    <footer>
+        <partial name="_Footer" />
+        @RenderSection("Footer", false)
+    </footer>
+
+    <!-- jQuery -->
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <!-- Bootstrap JS -->
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Site JS -->
+    <script src="~/js/site.js"></script>
+    <!-- Font Awesome JS (optional, only if you use their JS features) -->
+    <script src="~/lib/font-awesome/js/all.min.js"></script>
+
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

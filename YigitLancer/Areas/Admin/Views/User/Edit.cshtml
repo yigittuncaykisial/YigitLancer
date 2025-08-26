@@ -1,0 +1,62 @@
+﻿@model Entities.Models.User
+
+@{
+    ViewData["Title"] = "Edit User";
+}
+
+<h1 class="h3 mb-4 text-gray-800">Edit User</h1>
+
+<form asp-action="Edit" method="post">
+    <input type="hidden" asp-for="UserId" />
+
+    <div class="form-group">
+        <label asp-for="Name"></label>
+        <input asp-for="Name" class="form-control" />
+        <span asp-validation-for="Name" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="Surname"></label>
+        <input asp-for="Surname" class="form-control" />
+        <span asp-validation-for="Surname" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="UserName"></label>
+        <input asp-for="UserName" class="form-control" />
+        <span asp-validation-for="UserName" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="UserJob"></label>
+        <input asp-for="UserJob" class="form-control" />
+    </div>
+
+    <div class="form-group">
+        <label asp-for="Age"></label>
+        <input asp-for="Age" type="number" class="form-control" />
+    </div>
+
+    <div class="form-group">
+        <label asp-for="IsAdmin"></label>
+        <input asp-for="IsAdmin" type="checkbox" />
+    </div>
+
+    <div class="form-group">
+        <label asp-for="UserEmail"></label>
+        <input asp-for="UserEmail" type="email" class="form-control" />
+    </div>
+
+
+    <div class="form-group">
+        <label asp-for="UserDescription"></label>
+        <textarea asp-for="UserDescription" class="form-control"></textarea>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Save Changes</button>
+    <a asp-action="Index" class="btn btn-secondary">Cancel</a>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

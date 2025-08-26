@@ -1,0 +1,139 @@
+﻿@using Entities.Models
+@inject Services.Contracts.ICategoryService _categoryService
+
+@{
+    var categories = _categoryService?.GetAllCategories()?.Take(6) ?? Enumerable.Empty<Category>();
+    var isAuth = User?.Identity?.IsAuthenticated ?? false;
+}
+
+<footer class="footer bg-dark text-light mt-5 position-relative">
+    <!-- Dalga ayırıcı -->
+    <div class="w-100 position-absolute top-0 start-0" style="transform: translateY(-99%); line-height:0;">
+        <svg viewBox="0 0 1200 120" preserveAspectRatio="none" style="width:100%; height:48px;">
+            <path d="M0,0V46.29c47.79,22,103.59,29,158,17.39C274.21,46.21,307,15,402,8.77,485.82,2.21,554,28.12,634,44.77S800,70.84,882,58.39c87.49-13.4,172.26-56.27,318-58.39V0Z" opacity=".35" fill="#212529"></path>
+            <path d="M0,0V15.81C13,36,27,56,87,67.48c52,9.86,94-2.4,146-16.44C310,30,364,1.47,450,1.47S600,31.25,690,48.77,864,68.4,948,59.22c74.24-8.33,126.58-35.06,252-44.41V0Z" opacity=".5" fill="#212529"></path>
+            <path d="M0,0V5.63C149.93,59,314.09,71.37,475,42.57c43.94-8,84.19-19.62,128-26,59.73-8.55,113.28-2.11,168,12,48.74,12.88,95.74,32.15,146,38.17,59.27,7.19,113.51-6.56,183-22.54V0Z" fill="#212529"></path>
+        </svg>
+    </div>
+
+    <div class="container pt-5">
+        <div class="row g-4">
+            <!-- Marka -->
+            <div class="col-md-4">
+                <a class="text-white fs-3 fw-bold d-inline-flex align-items-center text-decoration-none" asp-controller="Home" asp-action="Index">
+                    <i class="bi bi-lightning-charge-fill me-2"></i> Lancer
+                </a>
+                <p class="text-secondary mt-2 mb-3">
+                    Freelance projelerini keşfet, doğru yetenekle hızlıca eşleş. Güvenli ödeme, net iletişim, kaliteli işler.
+                </p>
+                <div class="d-flex gap-2 mt-2">
+                    <a class="btn btn-outline-light btn-sm rounded-circle" href="#" aria-label="X"><i class="bi bi-twitter-x"></i></a>
+                    <a class="btn btn-outline-light btn-sm rounded-circle" href="#" aria-label="Instagram"><i class="bi bi-instagram"></i></a>
+                    <a class="btn btn-outline-light btn-sm rounded-circle" href="#" aria-label="LinkedIn"><i class="bi bi-linkedin"></i></a>
+                    <a class="btn btn-outline-light btn-sm rounded-circle" href="#" aria-label="GitHub"><i class="bi bi-github"></i></a>
+                </div>
+            </div>
+
+            <!-- Menü -->
+            <div class="col-6 col-md-2">
+                <h6 class="text-uppercase small text-secondary mb-2">Menü</h6>
+                <ul class="list-unstyled m-0">
+                    <li><a class="footer-link" asp-controller="Home" asp-action="Index">Ana Sayfa</a></li>
+                    <li><a class="footer-link" asp-controller="Jobs" asp-action="Index">İşler</a></li>
+                    <li><a class="footer-link" asp-controller="Freelancers" asp-action="Index">Freelancers</a></li>
+                    <li><a class="footer-link" asp-controller="Purchase" asp-action="Index">Satın Aldıklarım</a></li>
+                    @if (isAuth)
+                    {
+                        <li><a class="footer-link" asp-controller="ProfileSettings" asp-action="Index">Profilim</a></li>
+                    }
+                    else
+                    {
+                        <li><a class="footer-link" asp-controller="Auth" asp-action="Index">Giriş Yap</a></li>
+                        <li><a class="footer-link" asp-controller="Register" asp-action="Index">Kayıt Ol</a></li>
+                    }
+                </ul>
+            </div>
+
+            <!-- Popüler Kategoriler -->
+            <div class="col-6 col-md-3">
+                <h6 class="text-uppercase small text-secondary mb-2">Popüler Kategoriler</h6>
+                <ul class="list-unstyled m-0">
+                    @if (categories.Any())
+                    {
+                        @foreach (var c in categories)
+                        {
+                            <li><a class="footer-link" asp-controller="Jobs" asp-action="Index" asp-route-categoryId="@c.Id">@c.CategoryName</a></li>
+                        }
+                    }
+                    else
+                    {
+                        <li class="text-secondary small">Kategori bulunamadı.</li>
+                    }
+                </ul>
+            </div>
+
+            <!-- İletişim & Bülten -->
+            <div class="col-md-3">
+                <h6 class="text-uppercase small text-secondary mb-2">İletişim</h6>
+                <ul class="list-unstyled text-secondary small m-0">
+                    <li class="mb-1"><i class="bi bi-geo-alt me-1"></i> İstanbul, Türkiye</li>
+                    <li class="mb-1"><i class="bi bi-envelope me-1"></i> <a class="footer-link" href="mailto:support@lancer.com">support@lancer.com</a></li>
+                    <li class="mb-3"><i class="bi bi-telephone me-1"></i> <a class="footer-link" href="tel:+905555555555">+90 555 555 55 55</a></li>
+                </ul>
+
+                <form asp-controller="Newsletter" asp-action="Subscribe" method="post" class="d-flex gap-2 mt-2">
+                    <input type="email" name="email" class="form-control form-control-sm bg-transparent text-light border-secondary"
+                           placeholder="E-posta adresiniz" required />
+                    <button class="btn btn-primary btn-sm">Kaydol</button>
+                </form>
+                <div class="form-text text-secondary">Yeni ilanları ve kampanyaları ilk sen öğren.</div>
+            </div>
+        </div>
+
+        <hr class="border-secondary my-4" />
+
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-center pb-4">
+            <small class="text-secondary">© @DateTime.Now.Year Lancer. Tüm hakları saklıdır.</small>
+            <small class="text-secondary">Made with <span class="text-danger">♥</span> in İstanbul</small>
+        </div>
+    </div>
+
+    <!-- Yukarı çık butonu -->
+    <button id="backToTop" class="btn btn-primary rounded-circle position-fixed"
+            style="bottom:24px; right:24px; width:44px; height:44px; display:none;" aria-label="Yukarı çık">
+        <i class="bi bi-arrow-up"></i>
+    </button>
+</footer>
+
+<!-- Footer stilleri -->
+<style>
+    .footer .footer-link {
+        color: #adb5bd;
+        text-decoration: none;
+        display: inline-block;
+        padding: 4px 0;
+    }
+
+        .footer .footer-link:hover {
+            color: #ffffff;
+            text-decoration: underline;
+        }
+
+    .footer .btn-outline-light:hover {
+        color: #212529;
+        background: #f8f9fa;
+    }
+</style>
+
+<!-- Yukarı çık davranışı -->
+<script>
+    (function () {
+        const btn = document.getElementById('backToTop');
+        window.addEventListener('scroll', () => {
+            btn.style.display = (window.scrollY > 400) ? 'block' : 'none';
+        });
+        btn.addEventListener('click', () => {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+    })();
+</script>

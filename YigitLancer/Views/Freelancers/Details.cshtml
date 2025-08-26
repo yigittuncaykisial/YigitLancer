@@ -1,0 +1,219 @@
+﻿@model Entities.ViewModels.FreelancerDetailsViewModel
+@using System.Security.Claims
+
+@{
+    int? currentUserId = null;
+    var claimVal = User?.FindFirstValue("UserId");
+    if (int.TryParse(claimVal, out var tmp)) currentUserId = tmp;
+    if (currentUserId == null && ViewBag.CurrentUserId != null)
+        currentUserId = (int)ViewBag.CurrentUserId;
+}
+
+<style>
+    .card, .list-group-item {
+        border-radius: 16px;
+    }
+
+    .shadow-soft {
+        box-shadow: 0 10px 20px rgba(0,0,0,.06);
+    }
+
+    #star-rating i {
+        transition: transform .15s ease;
+    }
+
+        #star-rating i:hover {
+            transform: scale(1.15);
+        }
+
+    .review-avatar {
+        width: 44px;
+        height: 44px;
+        object-fit: cover;
+    }
+</style>
+
+<div class="container mt-4">
+    <div class="row">
+        <!-- Freelancer Bilgileri -->
+        <div class="col-md-4">
+            <div class="card shadow-soft">
+                <img src="@(string.IsNullOrEmpty(Model.Freelancer.ProfileImagePath)
+                                                     ? "/uploads/default.png"
+                                                     : Model.Freelancer.ProfileImagePath)"
+                     class="card-img-top" style="height:200px; object-fit:cover;" />
+                <div class="card-body">
+                    <h4 class="mb-1">@Model.Freelancer.Fullname</h4>
+                    <p class="text-muted">@Model.Freelancer.UserDescription</p>
+                    <p class="mb-1"><strong>Job:</strong> @Model.Freelancer.UserJob</p>
+                    <p class="mb-0"><strong>Email:</strong> @Model.Freelancer.UserEmail</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Freelancer İşleri ve Yorumlar -->
+        <div class="col-md-8">
+            <h5 class="mb-3">İşleri</h5>
+            <div class="row">
+                @foreach (var job in Model.Jobs)
+                {
+                    <div class="col-md-6 mb-3">
+                        <div class="card h-100 shadow-soft position-relative" style="cursor:pointer;">
+                            <img src="@(string.IsNullOrEmpty(job.JobImg) ? "/uploads/default-job.png" : job.JobImg)"
+                                 class="card-img-top" style="height:150px; object-fit:cover;" alt="@job.JobName" />
+                            <div class="card-body">
+                                <h6 class="mb-1">@job.JobName</h6>
+                                <p class="text-muted mb-2">@job.JobDescription</p>
+                                <span class="badge bg-dark">@job.Category?.CategoryName</span>
+
+                                <!-- Kartın tamamını tıklanabilir yapan görünmez link -->
+                                <a asp-controller="Jobs"
+                                   asp-action="Details"
+                                   asp-route-id="@job.Id"
+                                   class="stretched-link"
+                                   aria-label="@job.JobName"></a>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+                }
+            </div>
+
+            <hr class="my-4" />
+            <h5 class="mb-3">Yorumlar</h5>
+
+            @if (Model.Reviews != null && Model.Reviews.Any())
+            {
+                <div class="list-group mb-4">
+                    @foreach (var review in Model.Reviews)
+                    {
+                        <div class="list-group-item py-3 shadow-soft">
+                            <div class="d-flex align-items-start">
+                                <img src="@(string.IsNullOrEmpty(review.Reviewer?.ProfileImagePath) ? "/uploads/default.png" : review.Reviewer.ProfileImagePath)"
+                                     class="rounded-circle border me-3 review-avatar" alt="avatar" />
+                                <div class="flex-grow-1">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div class="d-flex align-items-center gap-2">
+                                            <strong>@(review.Reviewer?.UserName ?? "Anonim")</strong>
+                                            <span class="text-warning">
+                                                @for (int i = 0; i < review.Rating; i++)
+                                                {
+                                                    <i class="bi bi-star-fill"></i>
+                                                }
+                                                @for (int i = review.Rating; i < 5; i++)
+                                                {
+                                                    <i class="bi bi-star"></i>
+                                                }
+                                            </span>
+                                            <small class="text-muted ms-3 d-none d-md-inline">
+                                                <i class="bi bi-briefcase me-1"></i>
+                                                <a class="link-secondary text-decoration-none"
+                                                   asp-controller="Jobs" asp-action="Details" asp-route-id="@review.JobId">
+                                                    @(review.Job?.JobName ?? "İlgili iş")
+                                                </a>
+                                            </small>
+                                        </div>
+                                        <small class="text-muted">@review.CreatedAt.ToString("dd.MM.yyyy")</small>
+                                    </div>
+                                    <p class="mb-0 mt-2">@review.Comment</p>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="alert alert-light border shadow-soft">Henüz yorum yok.</div>
+            }
+
+            @if (User.Identity.IsAuthenticated)
+            {
+                <h6 class="mb-2">Yorum Ekle</h6>
+                <form asp-controller="Review" asp-action="AddReview" method="post" id="reviewForm" class="shadow-soft p-3 rounded-4 border">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="freelancerId" value="@Model.Freelancer.UserId" />
+                    <input type="hidden" name="reviewerId" value="@(currentUserId ?? 0)" />
+
+                    <div class="mb-3">
+                        <label for="jobId" class="form-label">İş seçin</label>
+                        <select class="form-select" id="jobId" name="jobId" required>
+                            @* Sadece BU kullanıcının satın aldığı ve bu freelancera ait işler *@
+                            @foreach (var job in Model.Jobs)
+                            {
+                                if (job.IsPurchased && currentUserId.HasValue && job.PurchasedByUserId == currentUserId.Value)
+                                {
+                                    <option value="@job.Id">@job.JobName</option>
+                                }
+                            }
+                        </select>
+                        <div class="form-text">Sadece satın aldığınız işler listelenir.</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Puan (1-5)</label>
+                        <div id="star-rating" class="d-flex gap-1">
+                            @for (int i = 1; i <= 5; i++)
+                            {
+                                <i class="bi bi-star" data-value="@i" style="font-size:1.5rem; cursor:pointer;"></i>
+                            }
+                        </div>
+                        <input type="hidden" id="rating-input" name="rating" value="0" required />
+                        <div class="invalid-feedback d-block" id="ratingError" style="display:none;">Lütfen puan seçin.</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="comment" class="form-label">Yorum</label>
+                        <textarea class="form-control" id="comment" name="comment" rows="3" maxlength="500" required></textarea>
+                    </div>
+
+                    <button type="submit" class="btn btn-success w-100">Yorum Gönder</button>
+                </form>
+            }
+            else
+            {
+                <p class="text-muted">Yorum bırakmak için giriş yapmalısınız.</p>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Yıldız seçimi
+        const stars = document.querySelectorAll("#star-rating i");
+        const ratingInput = document.getElementById("rating-input");
+        const ratingError = document.getElementById("ratingError");
+
+        stars.forEach(star => {
+          star.addEventListener("click", () => {
+            const rating = parseInt(star.getAttribute("data-value"));
+            ratingInput.value = rating;
+            ratingError.style.display = (rating > 0) ? "none" : "block";
+            stars.forEach(s => {
+              if (parseInt(s.getAttribute("data-value")) <= rating) {
+                s.classList.remove("bi-star"); s.classList.add("bi-star-fill","text-warning");
+              } else {
+                s.classList.remove("bi-star-fill","text-warning"); s.classList.add("bi-star");
+              }
+            });
+          });
+        });
+
+        // Basit form doğrulama
+        const form = document.getElementById("reviewForm");
+        form.addEventListener("submit", function (e) {
+            if (parseInt(ratingInput.value) < 1) {
+                e.preventDefault();
+                ratingError.style.display = "block";
+                document.getElementById("star-rating").scrollIntoView({ behavior: "smooth", block: "center" });
+            }
+            const jobSelect = document.getElementById("jobId");
+            if (!jobSelect.value) {
+                e.preventDefault();
+                alert("Lütfen bir iş seçin.");
+            }
+        });
+    </script>
+}

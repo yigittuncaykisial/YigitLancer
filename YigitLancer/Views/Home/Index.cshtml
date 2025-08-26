@@ -1,0 +1,108 @@
+﻿@model IEnumerable<Entities.Models.Jobs>
+
+@{
+    var jobs = Model?.ToList() ?? new List<Entities.Models.Jobs>();
+    string FallbackJobImg(string? img) => string.IsNullOrWhiteSpace(img) ? "/uploads/default-job.png" : img;
+}
+
+<div class="container mt-4">
+
+    <!-- BANNER / CAROUSEL (otomatik kayan) -->
+    <div id="homeCarousel"
+         class="carousel slide carousel-fade mb-4"
+         data-bs-ride="carousel"
+         data-bs-interval="3500"   
+         data-bs-pause="hover"     
+         data-bs-wrap="true">
+
+        <div class="carousel-indicators">
+            <button type="button" data-bs-target="#homeCarousel" data-bs-slide-to="0" class="active" aria-current="true" aria-label="1"></button>
+            <button type="button" data-bs-target="#homeCarousel" data-bs-slide-to="1" aria-label="2"></button>
+            <button type="button" data-bs-target="#homeCarousel" data-bs-slide-to="2" aria-label="3"></button>
+            <button type="button" data-bs-target="#homeCarousel" data-bs-slide-to="3" aria-label="4"></button>
+        </div>
+
+        <div class="carousel-inner rounded-4 overflow-hidden">
+            <div class="carousel-item active">
+                <img src="~/img/banner1.png" asp-append-version="true"
+                     class="d-block w-100" style="height:480px; object-fit:cover;" alt="Banner 1">
+                <div class="carousel-caption d-none d-md-block bg-dark bg-opacity-50 rounded-3 p-3">
+                    <h5 class="mb-1">YigitLancer</h5>
+                    <p class="mb-0">Yeni Nesil Online Çalışma Platformu</p>
+                </div>
+            </div>
+            <div class="carousel-item">
+                <img src="~/img/banner2.png" asp-append-version="true"
+                     class="d-block w-100" style="height:480px; object-fit:cover;" alt="Banner 2">
+                <div class="carousel-caption d-none d-md-block bg-dark bg-opacity-50 rounded-3 p-3">
+                    <h5 class="mb-1">Banner 2</h5>
+                    <p class="mb-0">Açıklama metni (isteğe bağlı)</p>
+                </div>
+            </div>
+            <div class="carousel-item">
+                <img src="~/img/banner3.png" asp-append-version="true"
+                     class="d-block w-100" style="height:480px; object-fit:cover;" alt="Banner 3">
+                <div class="carousel-caption d-none d-md-block bg-dark bg-opacity-50 rounded-3 p-3">
+                    <h5 class="mb-1">Banner 3</h5>
+                    <p class="mb-0">Açıklama metni (isteğe bağlı)</p>
+                </div>
+            </div>
+            <div class="carousel-item">
+                <img src="~/img/banner4.png" asp-append-version="true"
+                     class="d-block w-100" style="height:480px; object-fit:cover;" alt="Banner 3">
+                <div class="carousel-caption d-none d-md-block bg-dark bg-opacity-50 rounded-3 p-3">
+                    <h5 class="mb-1">Banner 4</h5>
+                    <p class="mb-0">Açıklama metni (isteğe bağlı)</p>
+                </div>
+            </div>
+        </div>
+
+        <button class="carousel-control-prev" type="button" data-bs-target="#homeCarousel" data-bs-slide="prev">
+            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+            <span class="visually-hidden">Önceki</span>
+        </button>
+        <button class="carousel-control-next" type="button" data-bs-target="#homeCarousel" data-bs-slide="next">
+            <span class="carousel-control-next-icon" aria-hidden="true"></span>
+            <span class="visually-hidden">Sonraki</span>
+        </button>
+    </div>
+
+    <!-- TÜM İŞLER (bannerın altında yerinde duruyor) -->
+    <h3 class="mb-3">İşler</h3>
+    <div class="row">
+        @if (jobs.Any())
+        {
+            foreach (var job in jobs)
+            {
+                <div class="col-md-4 mb-3">
+                    <div class="card h-100 shadow-sm">
+                        <div class="position-relative">
+                            <img src="@FallbackJobImg(job.JobImg)" class="card-img-top" style="height:180px; object-fit:cover;" alt="@job.JobName" />
+                            @if (job.IsPurchased)
+                            {
+                                <span class="badge bg-secondary position-absolute top-0 end-0 m-2">Satın Alındı</span>
+                            }
+                        </div>
+                        <div class="card-body">
+                            <h6 class="card-title">@job.JobName</h6>
+                            <p class="card-text text-muted">@job.JobDescription</p>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="badge bg-dark">@job.Category?.CategoryName</span>
+                                <small class="text-success fw-semibold">@job.JobPrice ₺</small>
+                            </div>
+                        </div>
+                        <div class="card-footer bg-white border-0 pb-3">
+                            <a class="btn btn-outline-primary w-100" asp-controller="Jobs" asp-action="Details" asp-route-id="@job.Id">Detay</a>
+                        </div>
+                    </div>
+                </div>
+            }
+        }
+        else
+        {
+            <div class="col-12">
+                <div class="alert alert-info">Şu anda listelenecek iş bulunamadı.</div>
+            </div>
+        }
+    </div>
+</div>

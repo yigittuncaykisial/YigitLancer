@@ -1,0 +1,19 @@
+﻿@model IEnumerable<Entities.Models.Jobs>
+<h3>İşlerim</h3>
+<div class="row">
+    @foreach (var j in Model)
+    {
+        <div class="col-md-4 mb-3">
+            <div class="card h-100">
+                <img class="card-img-top" src="@(!string.IsNullOrEmpty(j.JobImg) ? j.JobImg : "/uploads/default-job.png")" style="height:160px;object-fit:cover;" />
+                <div class="card-body">
+                    <h6>@j.JobName</h6>
+                    <span class="badge @(j.IsPurchased ? "bg-secondary" : "bg-success")">
+                        @(j.IsPurchased ? "Satıldı" : "Satışta")
+                    </span>
+                    <a class="btn btn-sm btn-outline-primary float-end" asp-controller="Jobs" asp-action="Details" asp-route-id="@j.Id">Detay</a>
+                </div>
+            </div>
+        </div>
+    }
+</div>

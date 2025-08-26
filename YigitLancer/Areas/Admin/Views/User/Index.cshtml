@@ -1,0 +1,59 @@
+﻿@model IEnumerable<Entities.Models.User>
+
+<!-- Begin Page Content -->
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <h1 class="h3 text-gray-800 mb-0">User List</h1>
+        <a asp-area="Admin" asp-controller="User" asp-action="Create" class="btn btn-sm btn-primary">Create</a>
+
+    </div>
+
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Users</h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>UserId</th>
+                            <th>Firstname</th>
+                            <th>Lastname</th>
+                            <th>Username</th>
+                            <th>Job</th>
+                            <th>Age</th>
+                            <th>Admin Power</th>
+                            <th>Email</th>
+                            <th>Description</th>
+                            <th>Settings</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var user in Model)
+                        {
+                            <tr>
+                                <td>@user.UserId</td>
+                                <td>@user.Name</td>
+                                <td>@user.Surname</td>
+                                <td>@user.UserName</td>
+                                <td>@user.UserJob</td>
+                                <td>@user.Age</td>
+                                <td>@user.IsAdmin</td>
+                                <td>@user.UserEmail</td>
+                                <td>@user.UserDescription</td>
+                                <td>
+                                    <a asp-action="Edit" asp-route-id="@user.UserId" class="btn btn-sm btn-primary">Edit</a>
+                                    <form asp-action="Delete" asp-route-id="@user.UserId" method="post" style="display:inline;">
+                                        <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete this user?');">Delete</button>
+                                    </form>
+                                </td>
+
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>

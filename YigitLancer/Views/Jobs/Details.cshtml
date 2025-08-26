@@ -1,0 +1,149 @@
+﻿@model Entities.Models.Jobs
+@{
+    ViewData["Title"] = "İlan Detayı";
+    var owner = ViewBag.Owner as Entities.Models.User;
+
+    var currentUserId = ViewBag.ReviewerId as int?;
+    var isOwner = currentUserId.HasValue && currentUserId.Value == Model.UserId;
+}
+
+<style>
+    /* Sol panel kart hover */
+    .job-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 25px rgba(0,0,0,0.2);
+        transition: all 0.3s ease;
+    }
+
+    /* Satın Al butonu hover */
+    .btn-purchase {
+        transition: all 0.3s ease;
+    }
+
+        .btn-purchase:hover {
+            transform: scale(1.05);
+            background-color: #28a745 !important;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+    /* Sağ panel hover efektli fotoğraf */
+    .owner-img:hover {
+        transform: scale(1.05);
+        transition: all 0.3s ease;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+    }
+
+    /* Durum chip’i */
+    .chip {
+        display: inline-flex;
+        align-items: center;
+        gap: .4rem;
+        padding: .3rem .6rem;
+        border-radius: 999px;
+        background: #f1f3f5;
+        color: #212529;
+        border: 1px solid rgba(0,0,0,.06);
+        font-size: .85rem;
+    }
+
+        .chip img {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+</style>
+
+<div class="container mt-5">
+    @* Flash mesajlar *@
+    @if (TempData["Error"] is string err)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>@err
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    @if (TempData["Success"] is string ok)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i>@ok
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <div class="row g-4">
+        <!-- Sol: Ürün Detayları -->
+        <div class="col-lg-8">
+            <div class="card shadow-sm rounded-4 job-card">
+                <img src="@(!string.IsNullOrEmpty(Model.JobImg) ? Model.JobImg : "/uploads/default-job.png")"
+                     class="card-img-top rounded-top"
+                     alt="@Model.JobName"
+                     style="height:350px; object-fit:cover;" />
+                <div class="card-body">
+                    <h3 class="card-title fw-bold">@Model.JobName</h3>
+                    <p class="card-text text-muted">@Model.JobDescription</p>
+                    <hr />
+                    <div class="d-flex flex-wrap align-items-center gap-3">
+                        <p class="fw-bold mb-0">
+                            Fiyat:
+                            <span class="text-success">@Model.JobPrice ₺</span>
+                        </p>
+                        <span class="badge bg-primary mb-0">@Model.Category?.CategoryName</span>
+                    </div>
+
+                    <div class="mt-3 d-flex flex-wrap align-items-center gap-2">
+                        @* Durum / Aksiyon *@
+                        @if (!Model.IsPurchased && !isOwner)
+                        {
+                            <a asp-controller="Purchase" asp-action="Checkout" asp-route-jobId="@Model.Id"
+                               class="btn btn-success btn-lg shadow-sm btn-purchase">
+                                Satın Al
+                            </a>
+                        }
+                        else if (isOwner)
+                        {
+                            <span class="badge bg-info fs-6">
+                                <i class="bi bi-person-badge me-1"></i> Bu ilan size ait
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-secondary fs-6">
+                                <i class="bi bi-bag-check me-1"></i> Satın Alındı
+                            </span>
+
+                            @* Satın alan bilgisi chip olarak *@
+                            @if (Model.PurchasedByUser != null)
+                            {
+                                var buyerAvatar = string.IsNullOrEmpty(Model.PurchasedByUser.ProfileImagePath)
+                                ? "/uploads/default.png"
+                                : Model.PurchasedByUser.ProfileImagePath;
+                                <span class="chip ms-1">
+                                    <img src="@buyerAvatar" alt="buyer" />
+                                    <span>Satın alan: <strong>@Model.PurchasedByUser.UserName</strong></span>
+                                </span>
+                            }
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sağ: İlan Sahibi -->
+        <div class="col-lg-4">
+            <div class="card shadow-sm rounded-4 text-center p-3 owner-card">
+                <img src="@(string.IsNullOrEmpty(owner?.ProfileImagePath) ? "/uploads/default.png" : owner.ProfileImagePath)"
+                     alt="Profile"
+                     class="rounded-circle mb-3 border border-3 border-primary owner-img"
+                     style="width:120px; height:120px; object-fit:cover;" />
+                <h5 class="fw-bold">@owner?.Fullname</h5>
+                <p class="text-muted mb-2">@owner?.UserJob</p>
+
+                @if (!string.IsNullOrEmpty(owner?.UserEmail))
+                {
+                    <a href="mailto:@owner.UserEmail" class="btn btn-outline-primary btn-sm w-100">İletişime Geç</a>
+                }
+            </div>
+        </div>
+    </div>
+</div>

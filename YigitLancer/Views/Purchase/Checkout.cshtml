@@ -1,0 +1,144 @@
+﻿@model Entities.Models.Jobs
+
+<div class="container mt-5">
+    <div class="row">
+        <!-- Sol: Ödeme Formu + Kart -->
+        <div class="col-md-8">
+
+            <!-- Kredi Kartı Görselleştirme -->
+            <div class="card mb-4 p-3" style="border-radius:20px; perspective:1200px; height:220px;">
+                <div class="card-inner position-relative w-100 h-100" style="transition: transform 0.8s ease-in-out; transform-style: preserve-3d;">
+
+                    <!-- Ön Yüz -->
+                    <div class="card-front position-absolute w-100 h-100 text-white" style="backface-visibility:hidden; border-radius:20px; background: linear-gradient(135deg,#2c3e50,#34495e); padding:20px; display:flex; flex-direction:column; justify-content:space-between; box-shadow: 0 10px 25px rgba(0,0,0,0.3);">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <span class="fw-bold fs-4">VISA</span>
+                            <img src="/img/chip.jfif" alt="chip" style="width:50px;" />
+                        </div>
+                        <h4 id="displayNumber">0000 0000 0000 0000</h4>
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <small>KART SAHİBİ</small><br />
+                                <span id="displayName">CARD HOLDER</span>
+                            </div>
+                            <div>
+                                <small>Son Kullanma</small><br />
+                                <span id="displayExpiry">MM/YY</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Arka Yüz -->
+                    <div class="card-back position-absolute w-100 h-100 text-white" style="backface-visibility:hidden; transform: rotateY(180deg); border-radius:20px; background:#333; padding:20px; box-shadow: 0 10px 25px rgba(0,0,0,0.3);">
+                        <div style="background:black; height:50px; margin-bottom:20px;"></div>
+                        <div class="d-flex justify-content-end align-items-center">
+                            <small>CVC:</small>
+                            <span id="backCVC" style="margin-left:10px;">***</span>
+                        </div>
+                        <div style="margin-top:30px;">
+                            <small class="text-muted">Bu kart sahte bir simülasyondur.</small>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Ödeme Formu -->
+            <div class="card shadow-lg rounded-3 p-4">
+                <h3 class="mb-4 text-primary">Ödeme Bilgileri</h3>
+                <form asp-action="Checkout" method="post">
+                    <input type="hidden" name="jobId" value="@Model.Id" />
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Kart Numarası</label>
+                        <input type="text" name="cardNumber" class="form-control form-control-lg" placeholder="0000 0000 0000 0000" maxlength="19" required />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Kart Sahibinin Adı</label>
+                        <input type="text" name="cardName" class="form-control form-control-lg text-uppercase" placeholder="İsim Soyisim" required />
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col">
+                            <label class="form-label fw-bold">Son Kullanma Tarihi</label>
+                            <input type="text" name="expiry" class="form-control form-control-lg" placeholder="MM/YY" maxlength="5" required />
+                        </div>
+                        <div class="col">
+                            <label class="form-label fw-bold">CVC</label>
+                            <input type="text" name="cvc" class="form-control form-control-lg" placeholder="123" maxlength="3" required />
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-lg w-100 shadow-sm">
+                        Ödemeyi Onayla
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Sağ: İş Detayları -->
+        <div class="col-md-4">
+            <div class="card shadow-lg rounded-3">
+                <img src="@(!string.IsNullOrEmpty(Model.JobImg) ? Model.JobImg : "/uploads/default-job.png")" class="card-img-top rounded-top" style="height:220px; object-fit:cover;" />
+                <div class="card-body">
+                    <h5 class="card-title fw-bold">@Model.JobName</h5>
+                    <p class="text-muted">@Model.JobDescription</p>
+                    <hr />
+                    <p class="mb-1"><strong>Kategori:</strong> @Model.Category?.CategoryName</p>
+                    <p class="mb-1"><strong>Fiyat:</strong> @Model.JobPrice ₺</p>
+                    <p class="mb-0"><strong>İlan Sahibi:</strong> @Model.User?.Fullname</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const cardNumberInput = document.querySelector('input[name="cardNumber"]');
+        const cardNameInput = document.querySelector('input[name="cardName"]');
+        const expiryInput = document.querySelector('input[name="expiry"]');
+        const cvcInput = document.querySelector('input[name="cvc"]');
+
+        const displayNumber = document.getElementById('displayNumber');
+        const displayName = document.getElementById('displayName');
+        const displayExpiry = document.getElementById('displayExpiry');
+        const backCVC = document.getElementById('backCVC');
+        const cardInner = document.querySelector('.card-inner');
+
+        cardNumberInput.addEventListener('input', e => {
+            let val = e.target.value.replace(/\D/g,'').substring(0,16);
+            val = val.replace(/(.{4})/g,'$1 ').trim();
+            e.target.value = val;
+            displayNumber.textContent = val || "0000 0000 0000 0000";
+        });
+
+        cardNameInput.addEventListener('input', e => {
+            const val = e.target.value.toUpperCase();
+            e.target.value = val;
+            displayName.textContent = val || "CARD HOLDER";
+        });
+
+        expiryInput.addEventListener('input', e => {
+            let val = e.target.value.replace(/\D/g,'').substring(0,4);
+            if(val.length >= 3){
+                val = val.substring(0,2) + '/' + val.substring(2);
+            }
+            e.target.value = val;
+            displayExpiry.textContent = val || "MM/YY";
+        });
+
+        cvcInput.addEventListener('focus', e => {
+            cardInner.style.transform = 'rotateY(180deg)';
+        });
+        cvcInput.addEventListener('blur', e => {
+            cardInner.style.transform = 'rotateY(0deg)';
+        });
+        cvcInput.addEventListener('input', e => {
+            let val = e.target.value.replace(/\D/g,'').substring(0,3);
+            e.target.value = val;
+            backCVC.textContent = val || "***";
+        });
+    </script>
+}

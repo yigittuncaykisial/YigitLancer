@@ -1,0 +1,120 @@
+﻿@model Controllers.ConversationDetailVM
+@{
+    ViewData["Title"] = "Sohbet";
+    // Yaklaşık navbar yüksekliği; sticky çakışmasın diye 64px üst boşluk bırakıyoruz
+    var stickyTop = "64px";
+}
+
+<style>
+    /* Medya sorgusu YOK. Her ekranda çalışır. */
+    .chat-wrap {
+        min-height: calc(100vh - 140px);
+    }
+    /* footer+başlık payı */
+    .chat-card {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+    }
+
+    .chat-body {
+        overflow: auto;
+        max-height: calc(100vh - 280px);
+    }
+    /* header+footer payı */
+    .sticky-col {
+        position: sticky;
+        top: @stickyTop;
+    }
+    /* sadece bu kadar */
+    .msg {
+        max-width: 70%;
+    }
+
+        .msg.mine {
+            background: var(--bs-primary);
+            color: #fff;
+        }
+
+        .msg.other {
+            background: var(--bs-light);
+        }
+</style>
+
+<div class="container py-4 chat-wrap">
+    <div class="row g-4 align-items-start">
+        <!-- SOL: Kullanıcı kartı (sticky; media yok) -->
+        <aside class="col-12 col-lg-3">
+            <div class="sticky-col">
+                <div class="card shadow-sm">
+                    <div class="card-body text-center position-relative">
+                        <img src="@(string.IsNullOrEmpty(Model.Other?.ProfileImagePath) ? "/uploads/default.png" : Model.Other.ProfileImagePath)"
+                             class="rounded-circle border mb-3"
+                             style="width:96px;height:96px;object-fit:cover;" alt="avatar" />
+                        <h6 class="fw-bold mb-1">@Model.Other?.UserName</h6>
+                        <div class="text-muted small mb-3">@Model.Other?.UserJob</div>
+
+                        <div class="d-grid gap-2">
+                            <a class="btn btn-outline-primary btn-sm"
+                               asp-controller="Freelancers" asp-action="Details" asp-route-id="@Model.Other?.UserId">
+                                Profili Gör
+                            </a>
+                            @if (!string.IsNullOrEmpty(Model.Other?.UserEmail))
+                            {
+                                <a class="btn btn-outline-secondary btn-sm" href="mailto:@Model.Other!.UserEmail">
+                                    E-posta
+                                </a>
+                            }
+                        </div>
+
+                        <div class="mt-3 small text-muted">
+                            <i class="bi bi-briefcase me-1"></i>@(Model.Job?.JobName ?? "(İş Yok)")
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- SAĞ: Sohbet kartı -->
+        <section class="col-12 col-lg-9">
+            <div class="card shadow-sm chat-card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="fw-bold">@Model.Other?.UserName</div>
+                        <small class="text-muted">@Model.Job?.JobName</small>
+                    </div>
+                    <a class="btn btn-sm btn-outline-secondary" asp-action="Index">Sohbetler</a>
+                </div>
+
+                <div class="card-body chat-body">
+                    @if (Model.Messages.Any())
+                    {
+                        @foreach (var m in Model.Messages)
+                        {
+                            var mine = (User.FindFirst("UserId")?.Value == m.SenderUserId.ToString());
+                            <div class="d-flex mb-2 @(mine ? "justify-content-end" : "justify-content-start")">
+                                <div class="p-2 rounded-3 msg @(mine ? "mine" : "other")">
+                                    <div class="small fw-semibold">@m.Sender?.UserName</div>
+                                    <div>@m.Text</div>
+                                    <div class="small text-muted">@m.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</div>
+                                </div>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="text-muted">Henüz mesaj yok.</div>
+                    }
+                </div>
+
+                <div class="card-footer">
+                    <form method="post" asp-action="Send" asp-route-id="@Model.ConversationId" class="d-flex gap-2">
+                        @Html.AntiForgeryToken()
+                        <input type="text" name="text" class="form-control" placeholder="Mesaj yazın..." required />
+                        <button class="btn btn-success" type="submit">Gönder</button>
+                    </form>
+                </div>
+            </div>
+        </section>
+    </div>
+</div>

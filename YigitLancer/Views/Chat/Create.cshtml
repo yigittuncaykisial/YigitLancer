@@ -1,0 +1,22 @@
+﻿@model Controllers.ChatCreateVM
+@{
+    ViewData["Title"] = "Sohbet Oluştur";
+}
+<h3>Sohbet Oluştur</h3>
+<form method="post" asp-action="Create">
+    @Html.AntiForgeryToken()
+    <div class="mb-3">
+        <label class="form-label">Kullanıcı seç</label>
+        <select asp-for="SelectedUserId" asp-items="Model.Users" class="form-select" required></select>
+        <span class="text-muted small">Tüm üyeler listelendi (kendiniz hariç).</span>
+    </div>
+
+    @if (Model.JobId.HasValue)
+    {
+        <input type="hidden" asp-for="JobId" />
+        <div class="alert alert-info py-2">Bu sohbet iş ID: <strong>@Model.JobId</strong> ile ilişkilendirilecek.</div>
+    }
+
+    <button class="btn btn-primary" type="submit">Sohbeti Başlat</button>
+    <a class="btn btn-link" asp-action="Index">İptal</a>
+</form>

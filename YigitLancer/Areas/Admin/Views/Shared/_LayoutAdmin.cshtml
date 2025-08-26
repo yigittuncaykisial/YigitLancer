@@ -1,0 +1,54 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Admin Panel</title>
+
+    <!-- Font Awesome -->
+    <link href="@Url.Content("~/admin/vendor/fontawesome-free/css/all.min.css")" rel="stylesheet" type="text/css" />
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css?family=Nunito:200,300,400,600,700,800,900" rel="stylesheet" />
+
+    <!-- SB Admin 2 CSS -->
+    <link href="@Url.Content("~/admin/css/sb-admin-2.min.css")" rel="stylesheet" />
+</head>
+<body id="page-top">
+
+    <!-- Page Wrapper -->
+    <div id="wrapper">
+        <!-- Sidebar -->
+        @await Html.PartialAsync("_LeftBarAdmin")
+
+        <!-- Content Wrapper -->
+        <div id="content-wrapper" class="d-flex flex-column">
+            <div id="content">
+                <!-- Top Navbar -->
+                <nav class="navbar navbar-expand navbar-light bg-white topbar mb-4 static-top shadow">
+                    <!-- Sidebar Toggle (Topbar) -->
+                    <button id="sidebarToggleTop" class="btn btn-link d-md-none rounded-circle mr-3">
+                        <i class="fa fa-bars"></i>
+                    </button>
+
+                    <!-- Topbar Navbar -->
+                    @await Html.PartialAsync("_NavbarAdmin")
+                </nav>
+
+                <!-- Page Content -->
+                <div class="container-fluid pt-4">
+                    @RenderBody()
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JS -->
+    <script src="@Url.Content("~/admin/vendor/jquery/jquery.min.js")"></script>
+    <script src="@Url.Content("~/admin/vendor/bootstrap/js/bootstrap.bundle.min.js")"></script>
+    <script src="@Url.Content("~/admin/vendor/jquery-easing/jquery.easing.min.js")"></script>
+    <script src="@Url.Content("~/admin/js/sb-admin-2.min.js")"></script>
+
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

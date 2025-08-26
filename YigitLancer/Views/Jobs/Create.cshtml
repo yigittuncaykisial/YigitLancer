@@ -1,0 +1,54 @@
+﻿@model Entities.ViewModels.JobCreateViewModel
+@using Microsoft.AspNetCore.Mvc.Rendering
+@{
+    ViewData["Title"] = "İlan Ekle";
+}
+
+<h2 class="mb-3">İlan Ekle</h2>
+
+<div asp-validation-summary="ModelOnly" class="text-danger mb-2"></div>
+
+<form asp-action="Create" method="post" enctype="multipart/form-data" novalidate>
+    @Html.AntiForgeryToken()
+
+    <div class="mb-3">
+        <label asp-for="JobName" class="form-label"></label>
+        <input asp-for="JobName" class="form-control" placeholder="Örn: Modern Logo Tasarımı" />
+        <span asp-validation-for="JobName" class="text-danger small"></span>
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="JobDescription" class="form-label"></label>
+        <textarea asp-for="JobDescription" class="form-control" rows="4" placeholder="İlan detayları..."></textarea>
+        <span asp-validation-for="JobDescription" class="text-danger small"></span>
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="JobPrice" class="form-label"></label>
+        <input asp-for="JobPrice" type="number" step="0.01" class="form-control" placeholder="Örn: 1500" />
+        <span asp-validation-for="JobPrice" class="text-danger small"></span>
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="CategoryId" class="form-label">Kategori</label>
+        <select asp-for="CategoryId" class="form-select"
+                asp-items="@(new SelectList(ViewBag.Categories, "Id", "CategoryName"))">
+            <option value="">Seçiniz</option>
+        </select>
+        <span asp-validation-for="CategoryId" class="text-danger small"></span>
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="JobImgFile" class="form-label">İlan Görseli</label>
+        <input asp-for="JobImgFile" type="file" class="form-control" accept="image/*" />
+        <div class="form-text">Boş bırakılırsa varsayılan görsel atanır.</div>
+    </div>
+
+    <button type="submit" class="btn btn-primary">İlanı Kaydet</button>
+</form>
+
+@section Scripts {
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/jquery-validation/dist/jquery.validate.min.js"></script>
+    <script src="~/lib/jquery-validation-unobtrusive/dist/jquery.validate.unobtrusive.min.js"></script>
+}

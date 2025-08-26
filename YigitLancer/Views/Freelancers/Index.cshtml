@@ -1,0 +1,22 @@
+﻿@model IEnumerable<Entities.Models.User>
+
+<div class="container mt-4">
+    <h3>Freelancerlar</h3>
+    <div class="row">
+        @foreach (var freelancer in Model)
+        {
+            <div class="col-md-3 mb-3">
+                <a asp-action="Details" asp-route-id="@freelancer.UserId" class="text-decoration-none text-dark">
+                    <div class="card h-100 text-center">
+                        <img src="@((freelancer.ProfileImagePath != null) ? freelancer.ProfileImagePath : "/uploads/default.png")" class="card-img-top" style="height:150px; object-fit:cover;" />
+
+                        <div class="card-body">
+                            <h6>@freelancer.Fullname</h6>
+                            <p class="mb-0"><small>@freelancer.UserJob</small></p>
+                        </div>
+                    </div>
+                </a>
+            </div>
+        }
+    </div>
+</div>
