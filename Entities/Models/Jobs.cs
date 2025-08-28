@@ -15,6 +15,8 @@ namespace Entities.Models
 
         public int JobPrice { get; set; }
 
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
         // Foreign Key: Hangi kullanıcı ekledi
         public int UserId { get; set; }
         public User User { get; set; }

@@ -28,7 +28,7 @@ namespace Repositories
     .HasOne(j => j.User)
     .WithMany(u => u.Jobs)
     .HasForeignKey(j => j.UserId)
-    .OnDelete(DeleteBehavior.Cascade); ;
+    .OnDelete(DeleteBehavior.Restrict); ;
 
             modelBuilder.Entity<Jobs>()
     .HasOne(j => j.PurchasedByUser)

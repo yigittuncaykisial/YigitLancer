@@ -239,31 +239,108 @@
     </div>
 </div>
 
-<script>
-    (function(){
-      const chatBody = document.getElementById('chatBody');
-      const form = document.getElementById('sendForm');
-      const input = document.getElementById('msgInput');
+@section Scripts {
+    <script>
+        (function(){
+          const chatBody = document.getElementById('chatBody');
+          const form = document.getElementById('sendForm');
+          const input = document.getElementById('msgInput');
+          const roomId = '@Model.ConversationId';
+          const myId = @meId;
 
-      // İlk açılışta en alta kaydır
-      if (chatBody) chatBody.scrollTop = chatBody.scrollHeight;
+          // Konuşma grubuna katıl
+          if (window._chatHub) {
+            // Hub tarafında yöntem adını buna göre yazacağız (bkz. Adım 3)
+            window._chatHub.invoke("JoinConversation", roomId.toString()).catch(()=>{});
+          }
 
-      // Enter = gönder, Shift+Enter = yeni satır
-      input?.addEventListener('keydown', function(e){
-        if(e.key === 'Enter' && !e.shiftKey){
-          e.preventDefault();
-          if (input.value.trim().length > 0) form.submit();
-        }
-      });
+          // Yeni mesaj geldiğinde DOM’a ekle
+          if (window._chatHub) {
+            window._chatHub.on("ReceiveMessage", (msg) => {
+              // Farklı odaya ait yayınlar gelirse filtrele
+              if (msg.conversationId?.toString() !== roomId.toString()) return;
 
-      // Autogrow
-      const autoGrow = () => { input.style.height='auto'; input.style.height=(input.scrollHeight)+'px'; };
-      input?.addEventListener('input', autoGrow);
-      setTimeout(autoGrow, 0);
+              const mine = (msg.senderUserId === myId);
+              const row = document.createElement('div');
+              row.className = 'msg-row' + (mine ? ' mine' : '');
 
-      // SignalR: bu konuşma grubuna katıl (varsa)
-      if (window._chatHub) {
-        window._chatHub.invoke("JoinConversation", @Model.ConversationId).catch(()=>{});
-      }
-    })();
-</script>
+              const bubble = document.createElement('div');
+              bubble.className = 'bubble ' + (mine ? 'mine' : 'other');
+
+              // İçerik
+              const txt = document.createElement('div');
+              txt.textContent = msg.text;
+              bubble.appendChild(txt);
+
+              // Saat/metrik
+              const meta = document.createElement('div');
+              meta.className = 'msg-meta';
+              try {
+                const dt = new Date(msg.createdAt);
+                meta.textContent = dt.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+              } catch { meta.textContent = ''; }
+
+              if (mine) {
+                const tick = document.createElement('span');
+                tick.className = 'ms-2';
+                tick.textContent = '✓ Gönderildi';
+                meta.appendChild(tick);
+              }
+              bubble.appendChild(meta);
+
+              // Karşı tarafın avatarı (sende sadece other için gösteriliyor)
+              if (!mine) {
+                const img = document.createElement('img');
+                img.className = 'avatar-sm border';
+                img.alt = '';
+                img.src = '@(string.IsNullOrEmpty(Model.Other?.ProfileImagePath) ? "/uploads/default.png" : Model.Other!.ProfileImagePath)';
+                row.appendChild(img);
+              }
+
+              row.appendChild(bubble);
+              chatBody.appendChild(row);
+
+              // alta kaydır
+              chatBody.scrollTop = chatBody.scrollHeight;
+            });
+          }
+
+          // Form submit -> full post yerine fetch
+          form?.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const text = (input?.value || '').trim();
+            if (!text) return;
+
+            // Anti-forgery token
+            const token = form.querySelector('input[name="__RequestVerificationToken"]')?.value;
+
+            const res = await fetch(form.action, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'RequestVerificationToken': token ?? ''
+              },
+              body: JSON.stringify({ text })
+            });
+
+            if (res.ok) {
+              input.value = '';
+              // UI'yı biz eklemiyoruz; server publish edince ReceiveMessage ile düşecek
+              // Yine de gecikme olursa istersen burada da “geçici ekleme” yapabilirsin.
+              input.focus();
+            }
+          });
+
+          // İlk açılışta en alta kaydır
+          if (chatBody) chatBody.scrollTop = chatBody.scrollHeight;
+
+          // Enter=Gönder, Shift+Enter=Satır
+          input?.addEventListener('keydown', function(e){
+            if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault();
+              form?.dispatchEvent(new Event('submit'));
+            }
+          });
+        })();
+    </script>
+}
