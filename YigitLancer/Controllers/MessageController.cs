@@ -19,36 +19,58 @@ namespace YigitLancer.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> Send([FromBody] CreateMessageDto dto) // ← JSON post ediyorsan [FromBody] ekle
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Send([FromRoute] int id, [FromForm] string text)
         {
+            if (string.IsNullOrWhiteSpace(text))
+                return BadRequest("Text empty");
+
+            // Kimlikten göndereni al
+            var userIdStr = User.FindFirst("UserId")?.Value;
+            if (!int.TryParse(userIdStr, out var senderUserId))
+                return Unauthorized();
+
             // 1) DB'ye kaydet
             var msg = new Message
             {
-                ConversationId = dto.ConversationId,
-                SenderUserId = dto.SenderUserId,
-                Text = dto.Text,
+                ConversationId = id,
+                SenderUserId = senderUserId,
+                Text = text.Trim(),
                 CreatedAt = DateTime.UtcNow,
                 IsRead = false
             };
             _ctx.Messages.Add(msg);
             await _ctx.SaveChangesAsync();
 
-            // 2) AYNI ODAYA YAYIN (tam burası)
+            // 2) Odaya yayın
             var payload = new
             {
                 id = msg.Id,
-                conversationId = msg.ConversationId,    // ← ekledik
+                conversationId = msg.ConversationId,
                 text = msg.Text,
                 senderUserId = msg.SenderUserId,
                 createdAt = msg.CreatedAt.ToString("o"),
-                isRead = msg.IsRead                      // ← ekledik
+                isRead = msg.IsRead
             };
 
             await _hub.Clients
-                      .Group(dto.ConversationId.ToString())
-                      .SendAsync("ReceiveMessage", payload);
+                      .Group(msg.ConversationId.ToString())
+                      .SendAsync("ReceiveMessage", new
+                      {
+                          id = msg.Id,
+                          conversationId = msg.ConversationId,
+                          text = msg.Text,
+                          senderUserId = msg.SenderUserId,
+                          createdAt = msg.CreatedAt.ToString("o"),
+                          isRead = msg.IsRead
+                      });
 
-            return Ok(payload);
+
+            // 3) AJAX ise 200 dön; normal post ise geri dön
+            if (Request.Headers["X-Requested-With"] == "fetch")
+                return Ok(payload);
+
+            return RedirectToAction("Conversation", new { id });
         }
     }
 
