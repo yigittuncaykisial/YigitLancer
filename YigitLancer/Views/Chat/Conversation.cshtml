@@ -229,7 +229,7 @@
                         @Html.AntiForgeryToken()
                         <textarea id="msgInput" name="text" class="form-control input-round" placeholder="Mesaj yazın..."
                                   rows="1"></textarea>
-                        <button class="btn btn-success px-4" type="submit">
+                        <button id="sendBtn" class="btn btn-success px-4" type="button">
                             <i class="bi bi-send-fill"></i>
                         </button>
                     </form>
@@ -238,149 +238,116 @@
         </section>
     </div>
 </div>
-
 @section Scripts {
 <script>
-(function(){
+(() => {
   const chatBody = document.getElementById('chatBody');
-  const form = document.getElementById('sendForm');
-  const input = document.getElementById('msgInput');
-  const roomId = '@Model.ConversationId';
-  const myId = @meId;
+  const form     = document.getElementById('sendForm');
+  const input    = document.getElementById('msgInput');
+  const sendBtn  = document.getElementById('sendBtn');
+  const convId   = '@Model.ConversationId';
+  const myId     = @meId;
 
-  function scrollBottom(){ if (chatBody) chatBody.scrollTop = chatBody.scrollHeight; }
+  // 0) Form submit’i kapat (yenilemeyi önle)
+  form?.addEventListener('submit', e => { e.preventDefault(); console.log('[chat] submit prevented'); });
 
-  // 1) Bağlantı hazır olana kadar bekle
-  async function waitUntilConnected(conn){
-    if (!conn) return false;
-    const Connected = 1; // signalR.HubConnectionState.Connected
-    if (conn.state === Connected) return true;
-    // Layout tarafında start ediliyor; döngüyle bekleyelim
-    for (let i=0;i<50;i++){ // ~10sn
-      await new Promise(r=>setTimeout(r,200));
-      if (conn.state === Connected) return true;
+  // 1) Alta kaydır helper
+  const scrollBottom = () => { if (chatBody) chatBody.scrollTop = chatBody.scrollHeight; };
+  requestAnimationFrame(scrollBottom);
+  setTimeout(scrollBottom, 0);
+
+  // 2) DOM’a mesaj ekle
+  function appendMsg(text, mine, iso){
+    console.log('[chat] appendMsg', {text, mine, iso});
+    const row = document.createElement('div');
+    row.className = 'msg-row' + (mine ? ' mine' : '');
+
+    if (!mine) {
+      const img = document.createElement('img');
+      img.className = 'avatar-sm border';
+      img.alt = '';
+      img.src = '@(string.IsNullOrEmpty(Model.Other?.ProfileImagePath) ? "/uploads/default.png" : Model.Other!.ProfileImagePath)';
+      row.appendChild(img);
     }
-    return false;
+
+    const bubble = document.createElement('div');
+    bubble.className = 'bubble ' + (mine ? 'mine' : 'other');
+
+    const txt = document.createElement('div');
+    txt.textContent = text;
+    bubble.appendChild(txt);
+
+    const meta = document.createElement('div');
+    meta.className = 'msg-meta';
+    const dt = new Date(iso);
+    meta.textContent = dt.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+    if (mine) {
+      const tick = document.createElement('span');
+      tick.className = 'ms-2';
+      tick.textContent = '✓ Gönderildi';
+      meta.appendChild(tick);
+    }
+    bubble.appendChild(meta);
+
+    row.appendChild(bubble);
+    chatBody.appendChild(row);
+    requestAnimationFrame(scrollBottom);
+    setTimeout(scrollBottom, 0);
   }
 
-  // 2) Yayınları dinle
-  function attachReceiveHandler(conn){
-    if (!conn) return;
-    // Aynı handler’ı iki kez eklememek için öncekini kaldır
-    conn.off("ReceiveMessage");
-    conn.on("ReceiveMessage", (msg) => {
-      if (!msg || (msg.conversationId?.toString() !== roomId.toString())) return;
-
-      const mine = (msg.senderUserId === myId);
-      const row = document.createElement('div');
-      row.className = 'msg-row' + (mine ? ' mine' : '');
-
-      const bubble = document.createElement('div');
-      bubble.className = 'bubble ' + (mine ? 'mine' : 'other');
-
-      const txt = document.createElement('div');
-      txt.textContent = msg.text;
-      bubble.appendChild(txt);
-
-      const meta = document.createElement('div');
-      meta.className = 'msg-meta';
-      try {
-        const dt = new Date(msg.createdAt);
-        meta.textContent = dt.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
-      } catch { meta.textContent = ''; }
-      if (mine) {
-        const tick = document.createElement('span'); tick.className='ms-2'; tick.textContent='✓ Gönderildi';
-        meta.appendChild(tick);
-      }
-      bubble.appendChild(meta);
-
-      if (!mine) {
-        const img = document.createElement('img');
-        img.className = 'avatar-sm border';
-        img.alt = '';
-        img.src = '@(string.IsNullOrEmpty(Model.Other?.ProfileImagePath) ? "/uploads/default.png" : Model.Other!.ProfileImagePath)';
-        row.appendChild(img);
-      }
-
-      row.appendChild(bubble);
-      chatBody.appendChild(row);
-      scrollBottom();
-    });
-  }
-
-  // 3) Odaya katıl (bağlantı hazırlandıktan sonra)
-  (async function join(){
-    const conn = window._chatHub;
-    attachReceiveHandler(conn);
-    const ok = await waitUntilConnected(conn);
-    if (!ok) { console.warn('SignalR not connected'); return; }
-    try {
-      await conn.invoke("JoinConversation", roomId.toString());
-      console.log('Joined conversation', roomId);
-    } catch (e) {
-      console.error('JoinConversation failed', e);
-    }
-  })();
-
-  // 4) Formu sayfa yenilemeden gönder + optimistic append
-  form?.addEventListener('submit', async (e) => {
-    e.preventDefault();
+  // 3) Gönder (fetch + FormData). Anti-forgery token FormData’da zaten var.
+  async function send(){
     const text = (input?.value || '').trim();
+    console.log('[chat] send() called, text:', text);
     if (!text) return;
 
-    // optimistic append (hemen göster)
-    const tempMsg = {
-      conversationId: Number(roomId),
-      text,
-      senderUserId: myId,
-      createdAt: new Date().toISOString(),
-      isRead: false
-    };
-    if (window._chatHub) window._chatHub.invoke; // sadece tree-shake önleme
-
-    // DOM’a ekle (yayın gelmezse bile görünür)
-    if (chatBody){
-      const row = document.createElement('div');
-      row.className = 'msg-row mine';
-      const bubble = document.createElement('div'); bubble.className = 'bubble mine';
-      const txt = document.createElement('div'); txt.textContent = text; bubble.appendChild(txt);
-      const meta = document.createElement('div'); meta.className='msg-meta';
-      meta.textContent = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
-      const tick = document.createElement('span'); tick.className='ms-2'; tick.textContent='✓ Gönderildi';
-      meta.appendChild(tick); bubble.appendChild(meta);
-      row.appendChild(bubble);
-      chatBody.appendChild(row);
-      scrollBottom();
-    }
+    // optimistic UI
+    const nowIso = new Date().toISOString();
+    appendMsg(text, true, nowIso);
 
     const fd = new FormData(form);
     fd.set('text', text);
-    const res = await fetch(form.action, {
-      method: 'POST',
-      body: fd,
-      headers: { 'X-Requested-With': 'fetch' }
+
+    try {
+      const res = await fetch(form.action, {
+        method: 'POST',
+        body: fd,
+        headers: { 'X-Requested-With': 'fetch' }
+      });
+      console.log('[chat] fetch status', res.status);
+      if (res.ok) { input.value=''; input.focus(); }
+      else console.error('[chat] send failed', await res.text());
+    } catch (err) {
+      console.error('[chat] fetch error', err);
+    }
+  }
+
+  // 4) Buton ve Enter aynı send()’i çağırır
+  sendBtn?.addEventListener('click', (e) => { e.preventDefault(); send(); });
+  input?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
+  });
+
+  // 5) SignalR: bu konuşma açık ve ping gelince son mesajı çek
+  window.currentConversationId = convId;
+
+  function hook(conn){
+    if (!conn) return;
+    conn.off('NewMessage');
+    conn.on('NewMessage', async (e) => {
+      console.log('[chat] NewMessage event', e);
+      if (!e || String(e.conversationId) !== String(convId)) return;
+      const r = await fetch(`/Messages/GetMessage?id=${e.messageId}`, { cache:'no-store' });
+      console.log('[chat] GetMessage status', r.status);
+      if (r.ok) {
+        const m = await r.json();
+        appendMsg(m.text, m.senderUserId === myId, m.createdAt);
+      }
     });
+  }
 
-    if (res.ok) {
-      input.value = '';
-      input.focus();
-      // Gerçek yayın da gelirse ikinci kez eklenmeyecek, çünkü optimistic mesajı zaten “benim” filtresiyle aynı görselde.
-      // (İstersen ID eşlemesiyle tekilleştirme yapılabilir.)
-    } else {
-      console.error('send failed', res.status);
-    }
-  });
-
-  // İlk açılışta alta kaydır
-  scrollBottom();
-
-  // Enter=Gönder, Shift+Enter=Satır
-  input?.addEventListener('keydown', function(e){
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      form?.dispatchEvent(new Event('submit'));
-    }
-  });
+  if (window._chatHub) hook(window._chatHub);
+  else document.addEventListener('chatHubReady', () => hook(window._chatHub), { once:true });
 })();
 </script>
 }

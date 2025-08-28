@@ -4,6 +4,7 @@ using Repositories;
 using Entities.Models;
 using System;
 using YigitLancer.Hubs;
+using Microsoft.EntityFrameworkCore;
 
 namespace YigitLancer.Controllers
 {
@@ -22,15 +23,12 @@ namespace YigitLancer.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Send([FromRoute] int id, [FromForm] string text)
         {
-            if (string.IsNullOrWhiteSpace(text))
-                return BadRequest("Text empty");
+            if (string.IsNullOrWhiteSpace(text)) return BadRequest("Text empty");
 
-            // Kimlikten göndereni al
             var userIdStr = User.FindFirst("UserId")?.Value;
-            if (!int.TryParse(userIdStr, out var senderUserId))
-                return Unauthorized();
+            if (!int.TryParse(userIdStr, out var senderUserId)) return Unauthorized();
 
-            // 1) DB'ye kaydet
+            // 1) Kaydet
             var msg = new Message
             {
                 ConversationId = id,
@@ -42,37 +40,43 @@ namespace YigitLancer.Controllers
             _ctx.Messages.Add(msg);
             await _ctx.SaveChangesAsync();
 
-            // 2) Odaya yayın
-            var payload = new
-            {
-                id = msg.Id,
-                conversationId = msg.ConversationId,
-                text = msg.Text,
-                senderUserId = msg.SenderUserId,
-                createdAt = msg.CreatedAt.ToString("o"),
-                isRead = msg.IsRead
-            };
+            var conv = await _ctx.Conversations
+                .Where(c => c.Id == id)
+                .Select(c => new { c.BuyerUserId, c.FreelancerUserId })
+                .SingleOrDefaultAsync();
+            if (conv is null) return NotFound("Conversation not found.");
 
+            var recipientUserId = (senderUserId == conv.BuyerUserId)
+                                    ? conv.FreelancerUserId
+                                    : conv.BuyerUserId;
+
+            // YAYIN: hem karşıya hem gönderene (iki tarayıcı açık olabilir)
             await _hub.Clients
-                      .Group(msg.ConversationId.ToString())
-                      .SendAsync("ReceiveMessage", new
-                      {
-                          id = msg.Id,
-                          conversationId = msg.ConversationId,
-                          text = msg.Text,
-                          senderUserId = msg.SenderUserId,
-                          createdAt = msg.CreatedAt.ToString("o"),
-                          isRead = msg.IsRead
-                      });
+                      .Groups($"u:{recipientUserId}", $"u:{senderUserId}") // ← iki tarayıcı için de
+                      .SendAsync("NewMessage", new { conversationId = id, messageId = msg.Id });
 
-
-            // 3) AJAX ise 200 dön; normal post ise geri dön
-            if (Request.Headers["X-Requested-With"] == "fetch")
-                return Ok(payload);
-
+            // Gönderen isterse optimistic UI kullanır, o yüzden 200 yeter
+            if (Request.Headers["X-Requested-With"] == "fetch") return Ok(new { ok = true });
             return RedirectToAction("Conversation", new { id });
+        }
+        [HttpGet]
+        public async Task<IActionResult> GetMessage([FromQuery] int id) // messageId
+        {
+            var m = await _ctx.Messages
+                .Where(x => x.Id == id)
+                .Select(x => new {
+                    x.Id,
+                    x.ConversationId,
+                    x.Text,
+                    x.SenderUserId,
+                    x.CreatedAt
+                })
+                .FirstOrDefaultAsync();
+
+            if (m is null) return NotFound();
+            return Json(m);
         }
     }
 
-    public record CreateMessageDto(int ConversationId, int SenderUserId, string Text);
+   
 }

@@ -11,7 +11,6 @@
     <link rel="stylesheet" href="~/css/site.css" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
     
     <!-- Font Awesome CSS -->
     <link rel="stylesheet" href="~/lib/font-awesome/css/all.min.css" />
@@ -45,35 +44,31 @@
     <!-- Font Awesome JS (optional, only if you use their JS features) -->
     <script src="~/lib/font-awesome/js/all.min.js"></script>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
-    <script>
-        (function(){
-          const connection = new signalR.HubConnectionBuilder()
-            .withUrl("/hubs/chat")
-            .withAutomaticReconnect()
-            .build();
+<script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
+<script>
+(() => {
+  const conn = new signalR.HubConnectionBuilder()
+    .withUrl("/hubs/chat")
+    .withAutomaticReconnect()
+    .build();
 
-          async function refreshUnread(){
-            try{
-              const res = await fetch('/Chat/UnreadSummary');
-              if(!res.ok) return;
-              const data = await res.json();
-                const count = data.messages;
-              const badge = document.getElementById('nav-chat-badge');
-              if (badge){
-                badge.textContent = count > 0 ? count : '';
-                badge.style.display = count > 0 ? 'inline-block' : 'none';
-              }
-            }catch{}
-          }
+  conn.on("NewMessage", (e) => {
+    console.log('[layout] NewMessage global', e);
+    const openId = window.currentConversationId?.toString();
+    if (!openId || openId !== e?.conversationId?.toString()) {
+ 
+    }
+  });
 
-          connection.on("UnreadChanged", refreshUnread);
-          connection.onreconnected(refreshUnread);
-          connection.start().then(refreshUnread);
+  conn.start().then(() => {
+    window._chatHub = conn;
+    document.dispatchEvent(new Event('chatHubReady'));
+    console.log('[layout] SignalR connected');
+  }).catch(err => console.error('[layout] SignalR start failed', err));
+})();
+</script>
 
-          window._chatHub = connection; // Conversation.cshtml’den gruba katılacağız
-        })();
-    </script>
+
 
     @await RenderSectionAsync("Scripts", required: false)
 </body>

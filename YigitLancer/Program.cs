@@ -1,6 +1,7 @@
 ﻿using Entities.Models;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Repositories;
 using Repositories.Contracts;
@@ -9,6 +10,7 @@ using Services.Contracts;
 using Services.Currency;
 using System.Diagnostics;
 using System.Net.Http.Headers;
+using YigitLancer.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,7 +18,7 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddControllersWithViews();
 
-builder.Services.AddSignalR();
+
 
 builder.Services.AddDbContext<RepositoryContext>(options =>
 {
@@ -32,6 +34,7 @@ builder.Services.AddScoped<IJobRepository, JobRepository>();
 builder.Services.AddScoped<IReviewRepository, ReviewRepository>();
 builder.Services.AddScoped<IPurchaseRequestRepository, PurchaseRequestRepository>();
 builder.Services.AddScoped<IChatRepository, ChatRepository>();
+builder.Services.AddSingleton<IUserIdProvider, ClaimUserIdProvider>();
 
 // Servisler
 builder.Services.AddScoped<IServiceManager, ServiceManager>(provider =>
@@ -89,7 +92,7 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.AccessDeniedPath = "/Auth/AccessDenied"; // Yetki yoksa yönlendirme
     });
 
-// 🔹 Admin Policy ekle
+
 builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("AdminOnly", policy => policy.RequireClaim("IsAdmin", "True"));
@@ -103,15 +106,17 @@ builder.Services.AddHttpContextAccessor();
 
 var app = builder.Build();
 
-app.MapHub<YigitLancer.Hubs.ChatHub>("/hubs/chat");
+
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 
 app.UseRouting();
 
-app.UseAuthentication(); // Authentication önce
-app.UseAuthorization(); // Authorization sonra
+app.UseAuthentication(); 
+app.UseAuthorization(); 
+
+app.MapHub<YigitLancer.Hubs.ChatHub>("/hubs/chat");
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
