@@ -1,5 +1,6 @@
 ﻿using Entities.Models;
 using Microsoft.AspNetCore.Identity;
+using Repositories;
 using Repositories.Contracts;
 using Services;
 using Services.Contracts;
@@ -10,13 +11,16 @@ public class ServiceManager : IServiceManager
     private readonly ICategoryService _categoryService;
     private readonly IJobService _jobService;
     private readonly IReviewService _reviewService;
+    private readonly RepositoryContext _ctx;
 
-    public ServiceManager(IRepositoryManager repositoryManager, IPasswordHasher<User> passwordHasher)
+    public ServiceManager(IRepositoryManager repositoryManager, IPasswordHasher<User> passwordHasher, RepositoryContext ctx)
     {
-        _userService = new UserManager(repositoryManager.UserRepository, passwordHasher);
+        _ctx = ctx;
+        _userService = new UserManager(repositoryManager.UserRepository, passwordHasher , _ctx);
         _categoryService = new CategoryManager(repositoryManager.CategoryRepository);
         _jobService = new JobManager(repositoryManager.JobRepository);
         _reviewService = new ReviewManager(repositoryManager.ReviewRepository);
+       
     }
 
     public IUserService UserService => _userService;

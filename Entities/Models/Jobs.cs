@@ -24,7 +24,7 @@ namespace Entities.Models
 
         // İşi satın alan kullanıcı (Opsiyonel)
         public int? PurchasedByUserId { get; set; }
-        public User PurchasedByUser { get; set; }
+        public User? PurchasedByUser { get; set; }
 
         // Foreign Key: Hangi kategoriye ait
         public int CategoryId { get; set; }

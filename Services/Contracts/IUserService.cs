@@ -15,5 +15,6 @@ namespace Services.Contracts
         User GetUserById(int id, bool trackChanges = false);
         User GetUserByUsername(string username, bool trackChanges = false);
         Entities.Models.User GetUserByEmail(string email);
+        void DeleteUserAndRelated(int userId);
     }
 }

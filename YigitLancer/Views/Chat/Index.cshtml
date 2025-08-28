@@ -2,30 +2,123 @@
 @{
     ViewData["Title"] = "Sohbetler";
 }
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <h3 class="mb-0">Sohbetler</h3>
-    <a class="btn btn-sm btn-primary" asp-action="Create">Sohbet Oluştur</a>
+
+<style>
+    .chat-list-wrap {
+        max-width: 940px;
+        margin-inline: auto
+    }
+
+    .chat-search {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        background: var(--bs-body-bg)
+    }
+
+    .chat-item {
+        transition: .2s ease;
+        border: 0 !important
+    }
+
+        .chat-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 18px rgba(0,0,0,.08)
+        }
+
+    .chat-avatar {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        object-fit: cover
+    }
+
+    .chat-meta {
+        font-size: .8rem;
+        opacity: .75
+    }
+
+    .truncate-1 {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 360px
+    }
+</style>
+
+<div class="container py-4 chat-list-wrap">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <h3 class="mb-0 d-flex align-items-center gap-2">
+            <i class="bi bi-chat-dots"></i> Sohbetler
+        </h3>
+        <a class="btn btn-sm btn-primary" asp-action="Create">
+            <i class="bi bi-plus-lg"></i> Yeni Sohbet
+        </a>
+    </div>
+
+    <div class="mb-3 chat-search">
+        <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-search"></i></span>
+            <input id="chatSearch" type="search" class="form-control" placeholder="Kullanıcı veya iş ara...">
+        </div>
+    </div>
+
+    @if (!Model.Any())
+    {
+        <div class="alert alert-light border d-flex align-items-center gap-2">
+            <i class="bi bi-inbox me-1"></i> Henüz sohbet yok.
+        </div>
+    }
+    else
+    {
+        <ul id="chatList" class="list-group">
+            @foreach (var c in Model)
+            {
+                <li class="list-group-item chat-item p-3">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center gap-3">
+                            <img src="@c.OtherUserAvatar" class="chat-avatar" alt="avatar">
+                            <div>
+                                <div class="fw-semibold truncate-1">@c.OtherUserName</div>
+
+                                @* İş varsa göster, yoksa hiç göstermeyelim *@
+                                @if (!string.IsNullOrWhiteSpace(c.JobName))
+                                {
+                                    <div class="chat-meta truncate-1">
+                                        <i class="bi bi-briefcase me-1"></i>@c.JobName
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-center gap-3">
+                            @if (c.UnreadCount > 0)
+                            {
+                                <span class="badge rounded-pill bg-danger">@c.UnreadCount</span>
+                            }
+                            <a class="btn btn-sm btn-outline-primary" asp-action="Conversation" asp-route-id="@c.ConversationId">
+                                Aç <i class="bi bi-arrow-right-short"></i>
+                            </a>
+                        </div>
+                    </div>
+                </li>
+            }
+        </ul>
+    }
 </div>
 
-@if (!Model.Any())
-{
-    <div class="alert alert-light border">Henüz sohbet yok.</div>
-}
-else
-{
-    <ul class="list-group">
-        @foreach (var c in Model)
-        {
-            <li class="list-group-item d-flex justify-content-between align-items-center">
-                <div class="d-flex align-items-center gap-2">
-                    <img src="@c.OtherUserAvatar" alt="" class="rounded-circle" style="width:36px;height:36px;object-fit:cover" />
-                    <div>
-                        <div class="fw-semibold">@c.OtherUserName</div>
-                        <small class="text-muted">@c.JobName</small>
-                    </div>
-                </div>
-                <a class="btn btn-sm btn-outline-primary" asp-action="Conversation" asp-route-id="@c.ConversationId">Aç</a>
-            </li>
+<script>
+    // Basit client-side arama (listeyi filtreler)
+    (function(){
+      const input = document.getElementById('chatSearch');
+      const list = document.getElementById('chatList');
+      if (!input || !list) return;
+
+      input.addEventListener('input', function(){
+        const q = this.value.toLowerCase();
+        for (const li of list.children){
+          const text = li.innerText.toLowerCase();
+          li.style.display = text.includes(q) ? '' : 'none';
         }
-    </ul>
-}
+      });
+    })();
+</script>

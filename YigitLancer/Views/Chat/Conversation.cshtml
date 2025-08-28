@@ -1,120 +1,269 @@
 ﻿@model Controllers.ConversationDetailVM
 @{
     ViewData["Title"] = "Sohbet";
-    // Yaklaşık navbar yüksekliği; sticky çakışmasın diye 64px üst boşluk bırakıyoruz
-    var stickyTop = "64px";
+    var myIdStr = User.FindFirst("UserId")?.Value;
+    int.TryParse(myIdStr, out var meId);
 }
 
 <style>
-    /* Medya sorgusu YOK. Her ekranda çalışır. */
-    .chat-wrap {
-        min-height: calc(100vh - 140px);
+    .chat-page {
+        max-width: 1100px;
+        margin-inline: auto
     }
-    /* footer+başlık payı */
+
     .chat-card {
         display: flex;
         flex-direction: column;
-        height: 100%;
+        height: calc(100vh - 140px)
+    }
+
+    .chat-header {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        background: var(--bs-body-bg)
     }
 
     .chat-body {
+        flex: 1;
         overflow: auto;
-        max-height: calc(100vh - 280px);
-    }
-    /* header+footer payı */
-    .sticky-col {
-        position: sticky;
-        top: @stickyTop;
-    }
-    /* sadece bu kadar */
-    .msg {
-        max-width: 70%;
+        background: var(--bs-body-bg)
     }
 
-        .msg.mine {
+    .chat-footer {
+        position: sticky;
+        bottom: 0;
+        z-index: 2;
+        background: var(--bs-body-bg)
+    }
+
+    .profile-card {
+        position: sticky;
+        top: 0
+    }
+
+    .avatar-lg {
+        width: 96px;
+        height: 96px;
+        border-radius: 50%;
+        object-fit: cover
+    }
+
+    .avatar-sm {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        object-fit: cover
+    }
+
+    .msg-row {
+        display: flex;
+        gap: .5rem;
+        margin-bottom: .5rem
+    }
+
+        .msg-row.mine {
+            justify-content: flex-end
+        }
+
+    .bubble {
+        max-width: 70%;
+        padding: .6rem .8rem;
+        border-radius: 1rem;
+        box-shadow: 0 2px 10px rgba(0,0,0,.06)
+    }
+
+        .bubble.mine {
             background: var(--bs-primary);
             color: #fff;
+            border-bottom-right-radius: .35rem
         }
 
-        .msg.other {
+        .bubble.other {
             background: var(--bs-light);
+            border-bottom-left-radius: .35rem
         }
+
+    .msg-meta {
+        font-size: .75rem;
+        opacity: .8;
+        margin-top: .25rem
+    }
+
+    .date-sep {
+        position: relative;
+        text-align: center;
+        margin: 1rem 0;
+        color: var(--bs-secondary-color)
+    }
+
+        .date-sep:before, .date-sep:after {
+            content: "";
+            position: absolute;
+            top: 50%;
+            width: 40%;
+            height: 1px;
+            background: var(--bs-border-color)
+        }
+
+        .date-sep:before {
+            left: 0
+        }
+
+        .date-sep:after {
+            right: 0
+        }
+
+        .date-sep span {
+            padding: 0 .6rem;
+            background: var(--bs-body-bg)
+        }
+
+    .input-round {
+        border-radius: 999px;
+        resize: none;
+        max-height: 160px
+    }
 </style>
 
-<div class="container py-4 chat-wrap">
-    <div class="row g-4 align-items-start">
-        <!-- SOL: Kullanıcı kartı (sticky; media yok) -->
+<div class="container py-4 chat-page">
+    <div class="row g-4">
+        <!-- SOL PROFİL -->
         <aside class="col-12 col-lg-3">
-            <div class="sticky-col">
-                <div class="card shadow-sm">
-                    <div class="card-body text-center position-relative">
-                        <img src="@(string.IsNullOrEmpty(Model.Other?.ProfileImagePath) ? "/uploads/default.png" : Model.Other.ProfileImagePath)"
-                             class="rounded-circle border mb-3"
-                             style="width:96px;height:96px;object-fit:cover;" alt="avatar" />
-                        <h6 class="fw-bold mb-1">@Model.Other?.UserName</h6>
-                        <div class="text-muted small mb-3">@Model.Other?.UserJob</div>
+            <div class="card shadow-sm profile-card">
+                <div class="card-body text-center">
+                    <img src="@(string.IsNullOrEmpty(Model.Other?.ProfileImagePath) ? "/uploads/default.png" : Model.Other!.ProfileImagePath)"
+                         class="avatar-lg mb-3 border" alt="avatar" />
+                    <h6 class="fw-bold mb-1">@Model.Other?.UserName</h6>
+                    <div class="text-muted small mb-3">@Model.Other?.UserJob</div>
 
-                        <div class="d-grid gap-2">
-                            <a class="btn btn-outline-primary btn-sm"
-                               asp-controller="Freelancers" asp-action="Details" asp-route-id="@Model.Other?.UserId">
-                                Profili Gör
+                    <div class="d-grid gap-2">
+                        <a class="btn btn-outline-primary btn-sm"
+                           asp-controller="Freelancers" asp-action="Details" asp-route-id="@Model.Other?.UserId">
+                            <i class="bi bi-person"></i> Profili Gör
+                        </a>
+                        @if (!string.IsNullOrEmpty(Model.Other?.UserEmail))
+                        {
+                            <a class="btn btn-outline-secondary btn-sm" href="mailto:@Model.Other!.UserEmail">
+                                <i class="bi bi-envelope"></i> E-posta
                             </a>
-                            @if (!string.IsNullOrEmpty(Model.Other?.UserEmail))
-                            {
-                                <a class="btn btn-outline-secondary btn-sm" href="mailto:@Model.Other!.UserEmail">
-                                    E-posta
-                                </a>
-                            }
-                        </div>
-
-                        <div class="mt-3 small text-muted">
-                            <i class="bi bi-briefcase me-1"></i>@(Model.Job?.JobName ?? "(İş Yok)")
-                        </div>
+                        }
                     </div>
+
+                    @* İş varsa göster, yoksa hiç gösterme *@
+                    @if (Model.Job != null)
+                    {
+                        <div class="mt-3 small text-muted">
+                            <i class="bi bi-briefcase me-1"></i>@Model.Job.JobName
+                        </div>
+                    }
                 </div>
             </div>
         </aside>
 
-        <!-- SAĞ: Sohbet kartı -->
+        <!-- SAĞ SOHBET -->
         <section class="col-12 col-lg-9">
             <div class="card shadow-sm chat-card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <div>
-                        <div class="fw-bold">@Model.Other?.UserName</div>
-                        <small class="text-muted">@Model.Job?.JobName</small>
+                <div class="card-header chat-header d-flex justify-content-between align-items-center">
+                    <div class="d-flex align-items-center gap-2">
+                        <img src="@(string.IsNullOrEmpty(Model.Other?.ProfileImagePath) ? "/uploads/default.png" : Model.Other!.ProfileImagePath)"
+                             class="avatar-sm border" alt="">
+                        <div>
+                            <div class="fw-bold">@Model.Other?.UserName</div>
+                            @* İş varsa alt başlıkta göster *@
+                            @if (Model.Job != null)
+                            {
+                                <small class="text-muted"><i class="bi bi-briefcase me-1"></i>@Model.Job.JobName</small>
+                            }
+                        </div>
                     </div>
-                    <a class="btn btn-sm btn-outline-secondary" asp-action="Index">Sohbetler</a>
+                    <a class="btn btn-sm btn-outline-secondary" asp-action="Index">
+                        <i class="bi bi-arrow-left"></i> Sohbetler
+                    </a>
                 </div>
 
-                <div class="card-body chat-body">
-                    @if (Model.Messages.Any())
+                <div id="chatBody" class="chat-body p-3">
+                    @{
+                        DateTime? lastDate = null;
+                    }
+                    @foreach (var m in Model.Messages)
                     {
-                        @foreach (var m in Model.Messages)
+                        var mine = (m.SenderUserId == meId);
+                        var d = m.CreatedAt.ToLocalTime().Date;
+                        if (lastDate == null || d != lastDate.Value)
                         {
-                            var mine = (User.FindFirst("UserId")?.Value == m.SenderUserId.ToString());
-                            <div class="d-flex mb-2 @(mine ? "justify-content-end" : "justify-content-start")">
-                                <div class="p-2 rounded-3 msg @(mine ? "mine" : "other")">
-                                    <div class="small fw-semibold">@m.Sender?.UserName</div>
-                                    <div>@m.Text</div>
-                                    <div class="small text-muted">@m.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</div>
+                            <div class="date-sep"><span>@d.ToString("dd MMM yyyy")</span></div>
+                            ;
+                            lastDate = d;
+                        }
+                        <div class="msg-row @(mine ? "mine" : "")">
+                            @if (!mine)
+                            {
+                                <img class="avatar-sm border" src="@(string.IsNullOrEmpty(Model.Other?.ProfileImagePath) ? "/uploads/default.png" : Model.Other!.ProfileImagePath)" alt="">
+                            }
+                            <div class="bubble @(mine ? "mine" : "other")">
+                                @* İSİM SATIRI YOK, sadece içerik *@
+                                <div>@m.Text</div>
+                                <div class="msg-meta">
+                                    @m.CreatedAt.ToLocalTime().ToString("HH:mm")
+                                    @if (mine)
+                                    {
+                                        if (m.IsRead)
+                                        {
+                                            <span class="ms-2">✓✓ Görüldü</span>
+                                        }
+                                        else
+                                        {
+
+                                            <span class="ms-2">✓ Gönderildi</span>
+                                        }
+                                    }
                                 </div>
                             </div>
-                        }
-                    }
-                    else
-                    {
-                        <div class="text-muted">Henüz mesaj yok.</div>
+                        </div>
                     }
                 </div>
 
-                <div class="card-footer">
-                    <form method="post" asp-action="Send" asp-route-id="@Model.ConversationId" class="d-flex gap-2">
+                <div class="card-footer chat-footer">
+                    <form id="sendForm" method="post" asp-action="Send" asp-route-id="@Model.ConversationId" class="d-flex gap-2">
                         @Html.AntiForgeryToken()
-                        <input type="text" name="text" class="form-control" placeholder="Mesaj yazın..." required />
-                        <button class="btn btn-success" type="submit">Gönder</button>
+                        <textarea id="msgInput" name="text" class="form-control input-round" placeholder="Mesaj yazın..."
+                                  rows="1"></textarea>
+                        <button class="btn btn-success px-4" type="submit">
+                            <i class="bi bi-send-fill"></i>
+                        </button>
                     </form>
                 </div>
             </div>
         </section>
     </div>
 </div>
+
+<script>
+    (function(){
+      const chatBody = document.getElementById('chatBody');
+      const form = document.getElementById('sendForm');
+      const input = document.getElementById('msgInput');
+
+      // İlk açılışta en alta kaydır
+      if (chatBody) chatBody.scrollTop = chatBody.scrollHeight;
+
+      // Enter = gönder, Shift+Enter = yeni satır
+      input?.addEventListener('keydown', function(e){
+        if(e.key === 'Enter' && !e.shiftKey){
+          e.preventDefault();
+          if (input.value.trim().length > 0) form.submit();
+        }
+      });
+
+      // Autogrow
+      const autoGrow = () => { input.style.height='auto'; input.style.height=(input.scrollHeight)+'px'; };
+      input?.addEventListener('input', autoGrow);
+      setTimeout(autoGrow, 0);
+
+      // SignalR: bu konuşma grubuna katıl (varsa)
+      if (window._chatHub) {
+        window._chatHub.invoke("JoinConversation", @Model.ConversationId).catch(()=>{});
+      }
+    })();
+</script>

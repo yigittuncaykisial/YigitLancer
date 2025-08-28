@@ -7,9 +7,11 @@ using Repositories.Contracts;
 using Services;
 using Services.Contracts;
 using Services.Currency;
+using System.Diagnostics;
 using System.Net.Http.Headers;
 
 var builder = WebApplication.CreateBuilder(args);
+
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
@@ -34,7 +36,8 @@ builder.Services.AddScoped<IServiceManager, ServiceManager>(provider =>
 {
     var repoManager = provider.GetRequiredService<IRepositoryManager>();
     var passwordHasher = provider.GetRequiredService<IPasswordHasher<User>>();
-    return new ServiceManager(repoManager, passwordHasher);
+    var ctx = provider.GetRequiredService<RepositoryContext>();
+    return new ServiceManager(repoManager, passwordHasher, ctx);
 });
 
 builder.Services.AddMemoryCache();
@@ -50,9 +53,9 @@ builder.Services.AddHttpClient<ICurrencyService, CollectApiCurrencyService>(clie
     client.BaseAddress = new Uri(builder.Configuration["CollectApi:BaseUrl"]!);
     client.DefaultRequestHeaders.Add("authorization", builder.Configuration["CollectApi:ApiKey"]!);
 
-    // BU SATIRI SİL ➜ client.DefaultRequestHeaders.Add("content-type", "application/json");
 
-    // İstersen response formatı için Accept ekle:
+
+
     client.DefaultRequestHeaders.Accept.Clear();
     client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 });
@@ -61,13 +64,16 @@ builder.Services.AddScoped<IUserService, UserManager>(provider =>
 {
     var userRepo = provider.GetRequiredService<IUserRepository>();
     var passwordHasher = provider.GetRequiredService<IPasswordHasher<User>>();
-    return new UserManager(userRepo, passwordHasher);
+    var ctx = provider.GetRequiredService<RepositoryContext>();
+    return new UserManager(userRepo, passwordHasher,ctx);
 });
 builder.Services.AddScoped<ICategoryService, CategoryManager>();
 builder.Services.AddScoped<IJobService, JobManager>();
 builder.Services.AddScoped<IReviewService, ReviewManager>();
 builder.Services.AddScoped<IPurchaseService, PurchaseManager>();
 builder.Services.AddScoped<IChatService, ChatManager>();
+
+builder.Services.AddScoped<IAdminService, AdminManager>();
 
 
 builder.Services.AddScoped<IPasswordHasher<Entities.Models.User>, PasswordHasher<Entities.Models.User>>();
@@ -88,7 +94,14 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("FreelancerOnly", policy => policy.RequireClaim("UserJob", "Freelancer")); // <<—
 });
 
+builder.Services.AddSignalR();
+
+
+builder.Services.AddHttpContextAccessor();
+
 var app = builder.Build();
+
+app.MapHub<YigitLancer.Hubs.ChatHub>("/hubs/chat");
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();

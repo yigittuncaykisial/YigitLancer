@@ -85,12 +85,9 @@ namespace Store1.Areas.Admin.Controllers
         [ValidateAntiForgeryToken]
         public IActionResult Delete(int id)
         {
-            var user = _userService.GetUserById(id, false);
-            if (user == null)
-                return NotFound();
-
-            _userService.DeleteUser(user);
-            return RedirectToAction(nameof(Index));
+            _userService.DeleteUserAndRelated(id);
+            TempData["Ok"] = "Kullanıcı ve ilişkili veriler silindi.";
+            return RedirectToAction("Index"); // kullanıcı listesine dön
         }
     }
 }

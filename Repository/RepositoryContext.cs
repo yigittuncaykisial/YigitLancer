@@ -28,13 +28,13 @@ namespace Repositories
     .HasOne(j => j.User)
     .WithMany(u => u.Jobs)
     .HasForeignKey(j => j.UserId)
-    .OnDelete(DeleteBehavior.Restrict); ;
+    .OnDelete(DeleteBehavior.Cascade); ;
 
             modelBuilder.Entity<Jobs>()
     .HasOne(j => j.PurchasedByUser)
     .WithMany() // User tarafında koleksiyon tutmuyorsan boş bırak
     .HasForeignKey(j => j.PurchasedByUserId)
-    .OnDelete(DeleteBehavior.NoAction);
+    .OnDelete(DeleteBehavior.SetNull);
 
             modelBuilder.Entity<Jobs>()
                 .HasOne(j => j.Category)
@@ -46,7 +46,7 @@ namespace Repositories
     .HasMany(u => u.PurchasedJobs)
     .WithOne(j => j.PurchasedByUser)
     .HasForeignKey(j => j.PurchasedByUserId)
-    .OnDelete(DeleteBehavior.NoAction);
+    .OnDelete(DeleteBehavior.SetNull);
 
 
             // Review ilişkileri
@@ -104,11 +104,10 @@ namespace Repositories
                  .HasForeignKey(m => m.SenderUserId)
                  .OnDelete(DeleteBehavior.NoAction);
 
-                e.Property(m => m.Text)
-                 .HasMaxLength(2000)
-                 .IsRequired();
+                e.Property(m => m.Text).HasMaxLength(2000).IsRequired();
+                e.Property(m => m.IsRead).HasDefaultValue(false);
             });
-            // PurchaseRequests (kullanıyorsan)
+            // PurchaseRequests
             modelBuilder.Entity<PurchaseRequest>(entity =>
             {
                 entity.HasKey(p => p.Id);

@@ -1,9 +1,12 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using Entities.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.AspNetCore.SignalR;
 using Services.Contracts;
 using System.Security.Claims;
-using Entities.Models;
-using Microsoft.AspNetCore.Mvc.Rendering;
+using System.Threading.Tasks;
+using YigitLancer.Hubs;
 
 namespace Controllers
 {
@@ -12,11 +15,13 @@ namespace Controllers
     {
         private readonly IChatService _chat;
         private readonly IUserService _users;
+        private readonly IHubContext<ChatHub> _hub;
 
-        public ChatController(IChatService chat, IUserService users)
+        public ChatController(IChatService chat, IUserService users, IHubContext<ChatHub> hub)
         {
             _chat = chat;
             _users = users;
+            _hub = hub;
         }
 
         private int? CurrentUserId()
@@ -25,36 +30,55 @@ namespace Controllers
             return int.TryParse(s, out var id) ? id : (int?)null;
         }
 
+        // SOHBET LİSTESİ
         public IActionResult Index()
         {
             var uid = CurrentUserId();
             if (uid == null) return RedirectToAction("Index", "Auth");
 
+            // Not: GetConversationsForUser içinde sıralamayı "son mesaj zamanı"na göre yaptığını varsayıyorum.
+            // (ChatManager'da OrderByDescending(Max(Message.CreatedAt) ?? Conversation.CreatedAt) olmalı.)
             var list = _chat.GetConversationsForUser(uid.Value);
+
             var vm = list.Select(c =>
             {
                 var me = uid.Value;
                 var other = (c.BuyerUserId == me) ? c.Freelancer : c.Buyer;
+                var unread = _chat.GetUnreadCountForConversation(c.Id, me);
+
                 return new ConversationListItemVM
                 {
                     ConversationId = c.Id,
-                    JobName = c.Job?.JobName ?? "(İş Yok)",
+                    JobName = c.Job?.JobName ,
                     OtherUserName = other?.UserName ?? "—",
                     OtherUserAvatar = other?.ProfileImagePath ?? "/uploads/default.png",
-                    CreatedAt = c.CreatedAt
+                    CreatedAt = c.CreatedAt,
+                    UnreadCount = unread
                 };
             }).ToList();
 
             return View(vm);
         }
 
-        public IActionResult Conversation(int id)
+        // TEK SOHBET SAYFASI
+        public async Task<IActionResult> Conversation(int id)
         {
             var uid = CurrentUserId();
             if (uid == null) return RedirectToAction("Index", "Auth");
 
             var conv = _chat.GetConversation(id, uid.Value);
             if (conv == null) return NotFound();
+
+            // Benim olmayan okunmamışları okundu yap
+            _chat.MarkMessagesRead(id, uid.Value);
+
+            // Rozeti iki tarafta güncelle
+            var otherId = (conv.BuyerUserId == uid.Value) ? conv.FreelancerUserId : conv.BuyerUserId;
+            await _hub.Clients.Group($"user-{uid.Value}").SendAsync("UnreadChanged");
+            await _hub.Clients.Group($"user-{otherId}").SendAsync("UnreadChanged");
+
+            // (İstersen) konuşma grubuna da "okundu" olayı
+            await _hub.Clients.Group($"conv-{id}").SendAsync("MessagesRead", new { conversationId = id });
 
             var msgs = _chat.GetMessages(id);
             var other = conv.BuyerUserId == uid.Value ? conv.Freelancer : conv.Buyer;
@@ -64,14 +88,18 @@ namespace Controllers
                 ConversationId = conv.Id,
                 Job = conv.Job,
                 Other = other,
-                Messages = msgs
+                Messages = msgs,
+                // yalnız son mesaj için değil; View'da her benim mesajım için m.IsRead kullanacağız.
+                // Bu property yine de lazım olabilir diye bırakıyorum:
+                LastMessageRead = _chat.IsLastMessageRead(conv.Id, uid.Value)
             };
             return View(vm);
         }
 
+        // MESAJ GÖNDER
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult Send(int id, string text)
+        public async Task<IActionResult> Send(int id, string text)
         {
             var uid = CurrentUserId();
             if (uid == null) return RedirectToAction("Index", "Auth");
@@ -80,11 +108,27 @@ namespace Controllers
             if (conv == null) return NotFound();
 
             if (!string.IsNullOrWhiteSpace(text))
-                _chat.SendMessage(id, uid.Value, text);
+            {
+                var msg = _chat.SendMessage(id, uid.Value, text);
+
+                // Karşı tarafa unread güncelle
+                var recipientId = (conv.BuyerUserId == uid.Value) ? conv.FreelancerUserId : conv.BuyerUserId;
+                await _hub.Clients.Group($"user-{recipientId}").SendAsync("UnreadChanged");
+
+                // Konuşma açık olanlara canlı mesaj
+                await _hub.Clients.Group($"conv-{id}").SendAsync("MessageCreated", new
+                {
+                    conversationId = id,
+                    senderUserId = uid.Value,
+                    text = msg.Text,
+                    createdAt = msg.CreatedAt
+                });
+            }
 
             return RedirectToAction("Conversation", new { id });
         }
 
+        // YENİ SOHBET OLUŞTUR (GET)
         [HttpGet]
         public IActionResult Create(int? jobId)
         {
@@ -106,6 +150,7 @@ namespace Controllers
             return View(vm);
         }
 
+        // YENİ SOHBET OLUŞTUR (POST)
         [HttpPost]
         [ValidateAntiForgeryToken]
         public IActionResult Create(ChatCreateVM vm)
@@ -124,7 +169,6 @@ namespace Controllers
                 return View(vm);
             }
 
-            // Rol ayrımı: mevcut kullanıcı Buyer ise karşı taraf Freelancer, değilse tersi
             var me = _users.GetUserById(uid.Value);
             var other = _users.GetUserById(vm.SelectedUserId);
             if (me == null || other == null) return NotFound();
@@ -144,7 +188,22 @@ namespace Controllers
             var conv = _chat.GetOrCreateConversation(buyerId, freelancerId, vm.JobId);
             return RedirectToAction("Conversation", new { id = conv.Id });
         }
+
+        // NAVBAR ROZETİ (AJAX)
+        [HttpGet]
+        public IActionResult UnreadSummary()
+        {
+            var uid = CurrentUserId();
+            if (uid == null) return Unauthorized();
+
+            var convCount = _chat.GetUnreadConversationCount(uid.Value); // istersen kullan
+            var totalCount = _chat.GetTotalUnreadCount(uid.Value);       // NAVBAR için bunu kullanıyoruz (B seçimi)
+
+            return Json(new { conversations = convCount, messages = totalCount });
+        }
     }
+
+    // ==== VIEW MODELLER ====
 
     public class ConversationListItemVM
     {
@@ -153,6 +212,7 @@ namespace Controllers
         public string OtherUserName { get; set; }
         public string OtherUserAvatar { get; set; }
         public DateTime CreatedAt { get; set; }
+        public int UnreadCount { get; set; }   // liste satırı için rozet
     }
 
     public class ConversationDetailVM
@@ -161,6 +221,7 @@ namespace Controllers
         public Jobs? Job { get; set; }
         public User? Other { get; set; }
         public List<Message> Messages { get; set; } = new();
+        public bool LastMessageRead { get; set; }
     }
 
     public class ChatCreateVM

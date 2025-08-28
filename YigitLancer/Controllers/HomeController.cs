@@ -20,8 +20,7 @@ namespace YigitLancer.Controllers
         {
             // Tüm kategorilerdeki iþleri getir
             var jobs = _jobService.GetAllJobs(null);
-            // Eðer GetAllJobs satýlanlarý filtreliyorsa ve “hepsi” görünsün istiyorsan,
-            // repository/serviste ayrý bir metot açmaný öneririm (örn. GetAllJobsIncludingPurchased()).
+
             return View(jobs);
         }
 
